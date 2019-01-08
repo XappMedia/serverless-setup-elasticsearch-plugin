@@ -20,20 +20,20 @@ describe("ServerlessObjUtils", () => {
             expect(Utils.getRegion(serverless as AnyServerless)).to.equal("TestRegion");
         });
 
-        it("Tests that the region is defaulted from serverless obj if region is not provided.", () => {
+        it("Tests that the region is defaulted from serverless obj if region is not provided but a default region is.", () => {
             const serverless: PartialServerless = {
                 service: {
                     provider: {}
                 }
             };
-            expect(Utils.getRegion(serverless as AnyServerless)).to.equal("us-east-1");
+            expect(Utils.getRegion(serverless as AnyServerless, "us-east-1")).to.equal("us-east-1");
         });
 
-        it("Tests that the region is defaulted from serverless obj if provider is not provided.", () => {
+        it("Tests that the region is defaulted from serverless obj if provider is not provided but a default region is.", () => {
             const serverless: PartialServerless = {
                 service: { }
             };
-            expect(Utils.getRegion(serverless as AnyServerless)).to.equal("us-east-1");
+            expect(Utils.getRegion(serverless as AnyServerless, "us-east-1")).to.equal("us-east-1");
         });
     });
 
