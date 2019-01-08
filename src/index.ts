@@ -96,7 +96,6 @@ function setupTemplates(baseUrl: string, templates: Template[] = []) {
         validateTemplate(template);
         const url = `${baseUrl}/_template/${template.name}`;
         const settings = require(Path.resolve(template.file));
-        console.log("TEMPLATE", settings);
         return esPut(url, settings);
     });
     return Promise.all(setupPromises);
