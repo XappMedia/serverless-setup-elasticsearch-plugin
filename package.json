@@ -4,8 +4,10 @@
   "description": "This is a plugin that can be used by Serverless to setup an elasticsearch domain.",
   "main": "dist/index.js",
   "scripts": {
+    "clean": "rm -rf ./node_modules && rm -rf ./outputs && rm -rf ./dist",
     "build": "tslint ./src/**/*.ts && tsc",
-    "test": "mocha ./test/**/*.ts"
+    "pretest": "npm run build",
+    "test": "nyc mocha \"./test/**/*.ts\""
   },
   "author": "",
   "license": "ISC",
@@ -15,8 +17,13 @@
     "@types/request": "2.48.1",
     "@types/request-promise-native": "1.0.15",
     "@types/sinon": "7.0.3",
+    "@types/sinon-chai": "3.2.2",
+    "chai": "4.2.0",
     "mocha": "5.2.0",
+    "nyc": "13.1.0",
     "sinon": "7.2.2",
+    "sinon-chai": "3.3.0",
+    "ts-node": "7.0.1",
     "tslint": "5.12.0",
     "typescript": "3.2.2"
   },

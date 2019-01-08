@@ -1,0 +1,18 @@
+{
+  "report-dir": "./outputs/reports/coverage",
+  "reporter": [
+    "lcov",
+    "text-summary",
+    "json-summary"
+  ],
+  "extension": [
+    ".ts"
+  ],
+  "exclude": [
+    "**/*.d.ts",
+    "test"
+  ],
+  "require": [
+    "ts-node/register"
+  ]
+}
