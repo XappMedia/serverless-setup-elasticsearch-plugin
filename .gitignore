@@ -1,31 +1,7 @@
-**/node_modules/
-.tmp/
-.nyc_output/
-.build
-**/.serverless/
-**/.package/
-**/deploy/
-**/.build/
-**/.webpack/
-
-src/**/package-lock.json
-
-# Do not track the generated javascript and map files from typescript
-outputs/
+node_modules/
 dist/
-src/**/*.pem
-
-**/.DS_Store
+outputs/
+.nyc_output/
 
 npm-debug.log
-
 .idea
-
-.env
-
-*.pyc
-
-# This is created by the LocalDb instance.  We don't want to save this.  It's strictly used for unit tests.
-**/shared-local-instance.db
-test-results.xml
-certs/certs.pem
