@@ -1,0 +1,7 @@
+{
+    "mappings": {
+        "test2": {
+            "type": "keyword"
+        }
+    }
+}
