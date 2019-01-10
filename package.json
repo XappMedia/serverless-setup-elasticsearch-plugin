@@ -9,7 +9,7 @@
     "pretest": "npm run build",
     "test": "nyc mocha \"./test/**/*.ts\"",
     "version:release": "standard-version --message 'v%s'",
-    "postversion": "git push --follow-tags origin master && npm publish",
+    "postversion:release": "git push --follow-tags origin master && npm publish",
     "prepublishOnly": "npm run build"
   },
   "author": "",
