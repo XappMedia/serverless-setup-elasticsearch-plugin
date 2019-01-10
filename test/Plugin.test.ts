@@ -1,3 +1,4 @@
+import { Serverless, ServerlessPlugin } from "@xapp/serverless-plugin-types";
 import * as Chai from "chai";
 import * as path from "path";
 import * as Request from "request-promise-native";
@@ -6,8 +7,6 @@ import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
 import Config, { Index, Template } from "../src/Config";
 import Plugin from "../src/Plugin";
-import Serverless from "../src/Serverless";
-import ServerlessPlugin from "../src/ServerlessPlugin";
 
 Chai.use(SinonChai);
 const expect = Chai.expect;

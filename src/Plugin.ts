@@ -1,11 +1,10 @@
+import { CLI, Hooks, Serverless, ServerlessPlugin} from "@xapp/serverless-plugin-types";
 import { CloudFormation, SharedIniFileCredentials } from "aws-sdk";
 import * as Path from "path";
 import * as Request from "request-promise-native";
 import * as AwsUtils from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
-import Serverless, { CLI } from "./Serverless";
 import * as ServerlessUtils from "./ServerlessObjUtils";
-import ServerlessPlugin, { Hooks } from "./ServerlessPlugin";
 
 interface Custom {
     elasticsearch?: Config;

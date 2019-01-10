@@ -1,5 +1,5 @@
+import { Serverless, ServerlessProvider } from "@xapp/serverless-plugin-types";
 import * as Chai from "chai";
-import Serverless from "../src/Serverless";
 import * as Utils from "../src/ServerlessObjUtils";
 
 type AnyServerless = Serverless<any>;
@@ -14,7 +14,7 @@ describe("ServerlessObjUtils", () => {
                 service: {
                     provider: {
                         region: "TestRegion"
-                    }
+                    } as ServerlessProvider
                 }
             };
             expect(Utils.getRegion(serverless as AnyServerless)).to.equal("TestRegion");
@@ -23,7 +23,7 @@ describe("ServerlessObjUtils", () => {
         it("Tests that the region is defaulted from serverless obj if region is not provided but a default region is.", () => {
             const serverless: PartialServerless = {
                 service: {
-                    provider: {}
+                    provider: {} as ServerlessProvider
                 }
             };
             expect(Utils.getRegion(serverless as AnyServerless, "us-east-1")).to.equal("us-east-1");
@@ -43,7 +43,7 @@ describe("ServerlessObjUtils", () => {
                 service: {
                     provider: {
                         profile: "TestProfile"
-                    }
+                    } as ServerlessProvider
                 }
             };
             expect(Utils.getProfile(serverless as AnyServerless)).to.equal("TestProfile");
@@ -52,10 +52,19 @@ describe("ServerlessObjUtils", () => {
         it("Tests that the profile is defaulted from serverless obj if profile is not provided.", () => {
             const serverless: PartialServerless = {
                 service: {
-                    provider: {}
+                    provider: {} as ServerlessProvider
                 }
             };
             expect(Utils.getProfile(serverless as AnyServerless)).to.equal("default");
+        });
+
+        it("Tests that the profile is defaulted to the one specified if profile is not provided from serverless object.", () => {
+            const serverless: PartialServerless = {
+                service: {
+                    provider: {} as ServerlessProvider
+                }
+            };
+            expect(Utils.getProfile(serverless as AnyServerless, "MyDefaultProfile")).to.equal("MyDefaultProfile");
         });
 
         it("Tests that the profile is defaulted from serverless obj if provider is not provided.", () => {
