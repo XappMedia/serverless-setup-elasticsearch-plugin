@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.0.6"></a>
+## [0.0.6](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.5...v0.0.6) (2019-01-10)
+
+
+### Bug Fixes
+
+* Moving the get cloud formation export to after the stack was updated. ([375f9b8](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/375f9b8))
+
+
+
 <a name="0.0.5"></a>
 ## [0.0.5](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.4...v0.0.5) (2019-01-10)
 
