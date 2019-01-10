@@ -15,9 +15,6 @@ class Plugin implements ServerlessPlugin {
     private serverless: Serverless<Custom>;
     private cli: CLI;
     private config: Config;
-
-    endpoint: string;
-
     hooks: Hooks;
 
     constructor(serverless: Serverless<Custom>, context: any) {
@@ -36,25 +33,9 @@ class Plugin implements ServerlessPlugin {
     private async create() {
         const custom = this.serverless.service.custom || {};
         this.config = custom.elasticsearch || {};
-        this.endpoint = this.config.endpoint;
-        if (this.config["cf-endpoint"]) {
-            const cloudFormation = new CloudFormation({
-                region: ServerlessUtils.getRegion(this.serverless),
-                credentials: new SharedIniFileCredentials({
-                    profile: ServerlessUtils.getProfile(this.serverless)
-                })
-            });
-            this.endpoint = await AwsUtils.findCloudformationExport(cloudFormation, this.config["cf-endpoint"]);
-            if (!this.endpoint) {
-                throw new Error("Endpoint not found at cloudformation export.");
-            }
-        }
-        if (!this.endpoint) {
+
+        if (!this.config.endpoint && !this.config["cf-endpoint"]) {
             throw new Error("Elasticsearch endpoint not specified.");
-        } else {
-            if (!this.endpoint.startsWith("http")) {
-                this.endpoint = `https://${this.endpoint}`;
-            }
         }
     }
 
@@ -62,10 +43,27 @@ class Plugin implements ServerlessPlugin {
      * Sends the mapping information to elasticsearch.
      */
     private async setupElasticCache() {
+        let endpoint = this.config.endpoint;
+        if (this.config["cf-endpoint"]) {
+            const cloudFormation = new CloudFormation({
+                region: ServerlessUtils.getRegion(this.serverless),
+                credentials: new SharedIniFileCredentials({
+                    profile: ServerlessUtils.getProfile(this.serverless)
+                })
+            });
+            endpoint = await AwsUtils.findCloudformationExport(cloudFormation, this.config["cf-endpoint"]);
+            if (!endpoint) {
+                throw new Error("Endpoint not found at cloudformation export.");
+            }
+        }
+        if (!endpoint.startsWith("http")) {
+            endpoint = `https://${endpoint}`;
+        }
+
         this.cli.log("Setting up templates...");
-        await setupTemplates(this.endpoint, this.config.templates);
+        await setupTemplates(endpoint, this.config.templates);
         this.cli.log("Setting up indices...");
-        await setupIndices(this.endpoint, this.config.indices);
+        await setupIndices(endpoint, this.config.indices);
         this.cli.log("Elasticsearch setup complete.");
     }
 }

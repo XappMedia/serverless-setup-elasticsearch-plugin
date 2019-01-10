@@ -55,86 +55,6 @@ describe("Plugin", () => {
                 "Elasticsearch endpoint not specified."
             );
         });
-
-        it("Tests that an error is through if there is a cf-endpoint and it does not have an endpoint", async () => {
-            const serverless = {
-                ...fakeServerless,
-                service: {
-                    custom: {
-                        elasticsearch: {
-                            "cf-endpoint": "TestCfEndpoint"
-                        }
-                    }
-                }
-            };
-
-            findCloudformationExportStub.returns(Promise.resolve(undefined));
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
-
-            await checkAndCatchError(
-                () => plugin.hooks["before:aws:deploy:deploy:updateStack"](),
-                "Endpoint not found at cloudformation export."
-            );
-        });
-
-        it("Tests that https is pre-pended to the url if it does not exist.", async () => {
-            const serverless = {
-                ...fakeServerless,
-                service: {
-                    custom: {
-                        elasticsearch: {
-                            endpoint: "TestCfEndpoint"
-                        }
-                    }
-                }
-            };
-
-            findCloudformationExportStub.returns(Promise.resolve(undefined));
-            const plugin: Plugin = new Plugin(serverless, {});
-
-            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
-
-            expect(plugin.endpoint).to.equal("https://TestCfEndpoint");
-        });
-
-        it("Tests that https is pre-pended to the url if it does not exist from a cloudformation domain.", async () => {
-            const serverless = {
-                ...fakeServerless,
-                service: {
-                    custom: {
-                        elasticsearch: {
-                            "cf-endpoint": "TestCfEndpoint"
-                        }
-                    }
-                }
-            };
-
-            const plugin: Plugin = new Plugin(serverless, {});
-
-            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
-
-            expect(plugin.endpoint).to.equal("https://ABCD123");
-        });
-
-        it("Tests that the url is not touched if it already has https.", async () => {
-            const serverless = {
-                ...fakeServerless,
-                service: {
-                    custom: {
-                        elasticsearch: {
-                            endpoint: "https://TestCfEndpoint"
-                        }
-                    }
-                }
-            };
-
-            findCloudformationExportStub.returns(Promise.resolve(undefined));
-            const plugin: Plugin = new Plugin(serverless, {});
-
-            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
-
-            expect(plugin.endpoint).to.equal("https://TestCfEndpoint");
-        });
     });
 
     describe("Setup indices", () => {
@@ -151,6 +71,77 @@ describe("Plugin", () => {
                 }
             };
         }
+
+        it("Tests that an error is through if there is a cf-endpoint and it does not have an endpoint", async () => {
+            const serverless = {
+                ...fakeServerless,
+                service: {
+                    custom: {
+                        elasticsearch: {
+                            "cf-endpoint": "TestCfEndpoint"
+                        }
+                    }
+                }
+            };
+
+            findCloudformationExportStub.returns(Promise.resolve(undefined));
+            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+
+            plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"](), "Endpoint not found at cloudformation export.");
+        });
+
+        it("Tests that https is pre-pended to the url if it does not exist.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.custom.elasticsearch.endpoint = "TestCfEndpoint";
+
+            const plugin: Plugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://TestCfEndpoint/Index1");
+        });
+
+        it("Tests that https is pre-pended to the url if it does not exist from a cloudformation domain.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.custom.elasticsearch.endpoint = undefined;
+            serverless.service.custom.elasticsearch["cf-endpoint"] = "ABCD123";
+
+            findCloudformationExportStub.returns(Promise.resolve("TestCfEndpoint"));
+            const plugin: Plugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://TestCfEndpoint/Index1");
+        });
+
+        it("Tests that the url is not touched if it already has https.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.custom.elasticsearch.endpoint = "https://TestCfEndpoint";
+            const plugin: Plugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://TestCfEndpoint/Index1");
+        });
 
         it("Tests that an error is thrown if a name is not provided for index.", async () => {
             const indices: Index[] = [
