@@ -27,6 +27,11 @@ export interface PluginConfig {
      * The index templates that are to be setup on the server.
      */
     "templates"?: Template[];
+
+    /**
+     * The AWS Profile credentials that is to be used to send information to the Elasticsearch server.
+     */
+    "aws-profile"?: string;
 }
 
 export default PluginConfig;
