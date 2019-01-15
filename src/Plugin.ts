@@ -49,7 +49,7 @@ class Plugin implements ServerlessPlugin {
             const cloudFormation = new CloudFormation({
                 region: ServerlessUtils.getRegion(this.serverless),
                 credentials: new SharedIniFileCredentials({
-                    profile: ServerlessUtils.getProfile(this.serverless)
+                    profile: this.config["aws-profile"] || ServerlessUtils.getProfile(this.serverless)
                 })
             });
             domain = await AwsUtils.findCloudformationExport(cloudFormation, this.config["cf-endpoint"]);
