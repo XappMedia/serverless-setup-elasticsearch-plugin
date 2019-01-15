@@ -1,7 +1,7 @@
 import { CLI, Hooks, Serverless, ServerlessPlugin} from "@xapp/serverless-plugin-types";
 import { CloudFormation, SharedIniFileCredentials } from "aws-sdk";
-import * as AWS4 from "aws4";
 import * as Path from "path";
+import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
 import * as AwsUtils from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
@@ -60,34 +60,22 @@ class Plugin implements ServerlessPlugin {
 
         const endpoint = domain.startsWith("http") ? domain : `https://${domain}`;
 
-        const signer: Signer = (this.config["aws-profile"]) ?
-            awsProfileSigner(domain, this.config["aws-profile"]) :
-            doNotingSigner();
+        const requestOptions: Partial<Request.Options> = {};
+        if (this.config["aws-profile"]) {
+            const sharedIni = new SharedIniFileCredentials({ profile: this.config["aws-profile"] });
+            requestOptions.aws = {
+                key: sharedIni.accessKeyId,
+                secret: sharedIni.secretAccessKey,
+                sign_version: 4
+            } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
+        }
 
         this.cli.log("Setting up templates...");
-        await setupTemplates(endpoint, this.config.templates, signer);
+        await setupTemplates(endpoint, this.config.templates, requestOptions);
         this.cli.log("Setting up indices...");
-        await setupIndices(endpoint, this.config.indices, signer);
+        await setupIndices(endpoint, this.config.indices, requestOptions);
         this.cli.log("Elasticsearch setup complete.");
     }
-}
-
-function doNotingSigner(): Signer {
-    return (url, headers) => headers;
-}
-
-function awsProfileSigner(domain: string, profile: string): Signer {
-    const sharedIni = new SharedIniFileCredentials({ profile });
-    return (url, headers) => {
-        const pathStart = url.indexOf(domain) + domain.length;
-        const path = url.slice(pathStart);
-        const opts = {
-            host: domain,
-            path
-        };
-        AWS4.sign(opts, { accessKeyId: sharedIni.accessKeyId, secretAccessKey: sharedIni.secretAccessKey });
-        return {...headers, opts};
-    };
 }
 
 /**
@@ -95,12 +83,12 @@ function awsProfileSigner(domain: string, profile: string): Signer {
  * @param baseUrl The elasticsearch URL
  * @param indices The indices to set up.
  */
-function setupIndices(baseUrl: string, indices: Index[] = [], signer?: Signer) {
+function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions: Partial<Request.Options>) {
     const setupPromises: PromiseLike<Request.FullResponse>[] = indices.map((index) => {
         validateIndex(index);
         const url = `${baseUrl}/${index.name}`;
         const settings = require(Path.resolve(index.file));
-        return esPut(url, settings, signer).catch((e) => {
+        return esPut(url, settings, requestOptions).catch((e) => {
             if (e.error.error.type !== "resource_already_exists_exception") {
                 throw e;
             }
@@ -114,12 +102,12 @@ function setupIndices(baseUrl: string, indices: Index[] = [], signer?: Signer) {
  * @param baseUrl The elasticsearch URL
  * @param templates The templates to set up.
  */
-function setupTemplates(baseUrl: string, templates: Template[] = [], signer?: Signer) {
+function setupTemplates(baseUrl: string, templates: Template[] = [], requestOptions?: Partial<Request.Options>) {
     const setupPromises: PromiseLike<Request.FullResponse>[] = templates.map((template) => {
         validateTemplate(template);
         const url = `${baseUrl}/_template/${template.name}`;
         const settings = require(Path.resolve(template.file));
-        return esPut(url, settings, signer);
+        return esPut(url, settings, requestOptions);
     });
     return Promise.all(setupPromises);
 }
@@ -142,15 +130,14 @@ function validateTemplate(template: Template) {
     }
 }
 
-type Signer = (url: string, headers: object) => object;
-
-function esPut(url: string, settings: object, signer: Signer = () => ({})) {
+function esPut(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
     const headers = {
         "Content-Type": "application/json",
     };
     return Request.put(url, {
-        headers: signer(url, headers),
-        json: settings
+        headers,
+        json: settings,
+        ...requestOpts
     });
 }
 
