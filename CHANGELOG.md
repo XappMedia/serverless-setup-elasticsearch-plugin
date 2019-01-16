@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.0.10"></a>
+## [0.0.10](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.9...v0.0.10) (2019-01-16)
+
+
+### Bug Fixes
+
+* Adding aws-sdk to peer-dependency ([cd97ea0](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/cd97ea0))
+
+
+
 <a name="0.0.9"></a>
 ## [0.0.9](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.8...v0.0.9) (2019-01-15)
 
