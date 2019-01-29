@@ -4,7 +4,7 @@ This is a plugin that can help automate setup for elasticsearch via a Serverless
 # Install
 
 ```
-npm install --save-dev serverless-setup-elasticsearch-plugin
+npm install --save-dev @xapp/serverless-setup-elasticsearch-plugin
 ```
 
 # Usage
