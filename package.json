@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "clean": "rm -rf ./node_modules && rm -rf ./outputs && rm -rf ./dist",
-    "build": "tslint ./src/**/*.ts && tsc",
+    "build": "tsc",
+    "lint": "tslint './src/**/*.ts' && tslint './test/**/*.ts'",
     "pretest": "npm run build",
     "test": "nyc mocha \"./test/**/*.ts\"",
     "version:release": "standard-version --message '[skip ci] v%s'",
