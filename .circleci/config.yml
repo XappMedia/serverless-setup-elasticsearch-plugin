@@ -40,6 +40,9 @@ jobs:
 
       - run: npm install
 
+      ## installing the peer dependency
+      - run: npm install aws-sdk
+
       - save_cache:
           paths:
             - node_modules
