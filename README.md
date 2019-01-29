@@ -1,6 +1,12 @@
 # serverless-setup-elasticsearch-plugin
 This is a plugin that can help automate setup for elasticsearch via a Serverless deploy.
 
+# Install
+
+```
+npm install --save-dev serverless-setup-elasticsearch-plugin
+```
+
 # Usage
 
 ## Setting up index
