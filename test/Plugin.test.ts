@@ -1,7 +1,7 @@
-import { Serverless, ServerlessPlugin } from "@xapp/serverless-plugin-types";
 import * as Chai from "chai";
 import * as path from "path";
 import * as Request from "request-promise-native";
+import { Serverless, ServerlessPlugin } from "serverless-plugin-type-definitions";
 import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
