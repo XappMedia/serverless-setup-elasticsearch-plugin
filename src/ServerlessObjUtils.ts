@@ -1,4 +1,4 @@
-import { Serverless } from "serverless-plugin-type-definitions";
+import { Serverless } from "@xapp/serverless-plugin-type-definitions";
 
 export const getProfile = (serverless: Serverless<any>, defaultRegion: string = "default") => getValue(serverless.service.provider, "profile", defaultRegion);
 

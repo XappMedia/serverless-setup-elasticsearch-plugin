@@ -1,5 +1,5 @@
 {
-  "name": "serverless-setup-elasticsearch-plugin",
+  "name": "@xapp/serverless-setup-elasticsearch-plugin",
   "version": "0.0.11",
   "description": "This is a plugin that can be used by Serverless to setup an elasticsearch domain.",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
     "@types/request-promise-native": "1.0.15",
     "@types/sinon": "7.0.3",
     "@types/sinon-chai": "3.2.2",
-    "serverless-plugin-type-definitions": "0.1.19",
+    "@xapp/serverless-plugin-type-definitions": "0.1.20",
     "chai": "4.2.0",
     "mocha": "5.2.0",
     "nyc": "13.1.0",

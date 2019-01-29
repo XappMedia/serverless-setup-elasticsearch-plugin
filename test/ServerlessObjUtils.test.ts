@@ -1,5 +1,5 @@
+import { Serverless, ServerlessProvider } from "@xapp/serverless-plugin-type-definitions";
 import * as Chai from "chai";
-import { Serverless, ServerlessProvider } from "serverless-plugin-type-definitions";
 import * as Utils from "../src/ServerlessObjUtils";
 
 type AnyServerless = Serverless<any>;

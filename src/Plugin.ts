@@ -1,8 +1,8 @@
+import { CLI, Hooks, Serverless, ServerlessPlugin} from "@xapp/serverless-plugin-type-definitions";
 import { CloudFormation, SharedIniFileCredentials } from "aws-sdk";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
-import { CLI, Hooks, Serverless, ServerlessPlugin} from "serverless-plugin-type-definitions";
 import * as AwsUtils from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
 import * as ServerlessUtils from "./ServerlessObjUtils";
