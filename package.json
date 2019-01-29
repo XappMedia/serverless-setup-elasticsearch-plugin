@@ -25,7 +25,7 @@
     "@types/request-promise-native": "1.0.15",
     "@types/sinon": "7.0.3",
     "@types/sinon-chai": "3.2.2",
-    "@xapp/serverless-plugin-types": "0.1.5",
+    "serverless-plugin-type-definitions": "0.1.19",
     "chai": "4.2.0",
     "mocha": "5.2.0",
     "nyc": "13.1.0",
