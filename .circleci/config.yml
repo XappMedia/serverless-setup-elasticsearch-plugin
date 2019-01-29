@@ -93,6 +93,9 @@ jobs:
 
       - run: npm install
 
+      ## installing the peer dependency
+      - run: npm install aws-sdk
+
       - run:
          name: Setting Up Git Email
          command: git config user.email "robot@xappmedia.com"
