@@ -4,7 +4,7 @@ import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
 import * as AwsUtils from "./AwsUtils";
-import Config, { Index, Template } from "./Config";
+import Config, { Index, Repository, Template } from "./Config";
 import * as ServerlessUtils from "./ServerlessObjUtils";
 
 interface Custom {
@@ -74,6 +74,8 @@ class Plugin implements ServerlessPlugin {
         await setupTemplates(endpoint, this.config.templates, requestOptions);
         this.cli.log("Setting up indices...");
         await setupIndices(endpoint, this.config.indices, requestOptions);
+        this.cli.log("Setting up repositories...");
+        await setupRepo(endpoint, this.config.repositories, requestOptions);
         this.cli.log("Elasticsearch setup complete.");
     }
 }
@@ -83,7 +85,7 @@ class Plugin implements ServerlessPlugin {
  * @param baseUrl The elasticsearch URL
  * @param indices The indices to set up.
  */
-function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions: Partial<Request.Options>) {
+function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions?: Partial<Request.Options>) {
     const setupPromises: PromiseLike<Request.FullResponse>[] = indices.map((index) => {
         validateIndex(index);
         const url = `${baseUrl}/${index.name}`;
@@ -95,6 +97,15 @@ function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions: Pa
         });
     });
     return Promise.all(setupPromises);
+}
+
+function validateIndex(index: Index) {
+    if (!index.name) {
+        throw new Error("Index does not have a name.");
+    }
+    if (!index.file) {
+        throw new Error("Index does not have a file location.");
+    }
 }
 
 /**
@@ -112,15 +123,6 @@ function setupTemplates(baseUrl: string, templates: Template[] = [], requestOpti
     return Promise.all(setupPromises);
 }
 
-function validateIndex(index: Index) {
-    if (!index.name) {
-        throw new Error("Index does not have a name.");
-    }
-    if (!index.file) {
-        throw new Error("Index does not have a file location.");
-    }
-}
-
 function validateTemplate(template: Template) {
     if (!template.name) {
         throw new Error("Template does not have a name.");
@@ -128,6 +130,31 @@ function validateTemplate(template: Template) {
     if (!template.file) {
         throw new Error("Template does not have a file location.");
     }
+}
+
+/**
+ * Sets up all the repos.
+ * @param baseUrl
+ * @param repo
+ */
+function setupRepo(baseUrl: string, repos: Repository[] = [], requestOptions: Partial<Request.Options>) {
+    const setupPromises: PromiseLike<Request.FullResponse>[] = repos.map((repo) => {
+        validateRepo(repo);
+        const { name, type, settings } = repo;
+        const url = `${baseUrl}/_snapshot/${name}`;
+        return esPut(url, { type, settings }, requestOptions);
+    });
+    return Promise.all(setupPromises);
+}
+
+function validateRepo(repo: Repository) {
+    if (!repo.name) {
+        throw new Error("Repo does not have a name.");
+    }
+    if (!repo.type) {
+        throw new Error("Repo does not have a type.");
+    }
+    // The settings will be validated by Elasticsearch.
 }
 
 function esPut(url: string, settings: object, requestOpts?: Partial<Request.Options>) {

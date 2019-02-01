@@ -5,7 +5,7 @@ import * as Request from "request-promise-native";
 import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
-import Config, { Index, Template } from "../src/Config";
+import Config, { Index, Repository, Template } from "../src/Config";
 import Plugin from "../src/Plugin";
 
 Chai.use(SinonChai);
@@ -363,6 +363,132 @@ describe("Plugin", () => {
                     "Content-Type": "application/json"
                 },
                 json: template2
+            });
+        });
+    });
+
+    describe("Setup Repo", () => {
+        function createServerless(repositories: Repository[]): Serverless<Custom> {
+            return {
+                ...fakeServerless,
+                service: {
+                    custom: {
+                        elasticsearch: {
+                            ...endpointConfig,
+                            repositories
+                        }
+                    }
+                }
+            };
+        }
+
+        it("Tests that a repo without a name throws an error.", async () => {
+            const repos: Repository[] = [{
+                name: undefined,
+                type: "s3",
+                settings: {
+                    bucket: "TestBucket",
+                    region: "us-east-1",
+                    role_arn: "MyArn"
+                }
+            }];
+
+            const serverless = createServerless(repos);
+            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
+        });
+
+        it("Tests that a repo without a type throws an error.", async () => {
+            const repos: Repository[] = [{
+                name: "TestRepo",
+                type: undefined,
+                settings: {
+                    bucket: "TestBucket",
+                    region: "us-east-1",
+                    role_arn: "MyArn"
+                }
+            }];
+
+            const serverless = createServerless(repos);
+            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
+        });
+
+        it("Tests that a single repo is sent.", async () => {
+            const repos: Repository[] = [{
+                name: "TestRepo",
+                type: "s3",
+                settings: {
+                    bucket: "TestBucket",
+                    region: "us-east-1",
+                    role_arn: "MyArn"
+                }
+            }];
+
+            const serverless = createServerless(repos);
+            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    type: repos[0].type,
+                    settings: repos[0].settings
+                }
+            });
+        });
+
+        it("Tests that multiple repos are sent.", async () => {
+            const repos: Repository[] = [{
+                name: "TestRepo1",
+                type: "s3",
+                settings: {
+                    bucket: "TestBucket",
+                    region: "us-east-1",
+                    role_arn: "MyArn"
+                }
+            }, {
+                name: "TestRepo2",
+                type: "s3",
+                settings: {
+                    bucket: "TestBucket2",
+                    region: "us-east-2",
+                    role_arn: "MyArn2"
+                }
+            }];
+
+            const serverless = createServerless(repos);
+            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo1", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    type: repos[0].type,
+                    settings: repos[0].settings
+                }
+            });
+
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo2", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    type: repos[1].type,
+                    settings: repos[1].settings
+                }
             });
         });
     });
