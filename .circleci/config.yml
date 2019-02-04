@@ -113,6 +113,10 @@ jobs:
             - "49:7c:08:c2:15:f4:fa:96:f5:86:2f:fe:9c:57:76:b6"
 
       - run:
+          name: Build
+          command: npm run build
+
+      - run:
           name: Release Version
           command: npm run version:release
 
