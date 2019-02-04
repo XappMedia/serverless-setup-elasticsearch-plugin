@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "noImplicitAny": true,
     "removeComments": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "target": "es2015",
     "outDir": "./dist",
     "noUnusedLocals": true,
