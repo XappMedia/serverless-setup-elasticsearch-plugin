@@ -16,7 +16,9 @@ interface Custom {
 }
 
 const fakeServerless: Serverless<Custom> = {
-    service: {},
+    service: {
+        service: "TestService",
+    },
     cli: {
         log: Sinon.stub()
     }
@@ -45,6 +47,10 @@ describe("Plugin", () => {
         findCloudformationExportStub.returns(Promise.resolve(endpointConfig.endpoint));
     });
 
+    after(() => {
+        putStub.restore();
+    });
+
     describe("Create", () => {
         it("Tests that an error is thrown if there is no domain.", async () => {
             const serverless = { ...fakeServerless };
@@ -62,6 +68,7 @@ describe("Plugin", () => {
             return {
                 ...fakeServerless,
                 service: {
+                    ...fakeServerless.service,
                     custom: {
                         elasticsearch: {
                             ...endpointConfig,
@@ -76,6 +83,7 @@ describe("Plugin", () => {
             const serverless = {
                 ...fakeServerless,
                 service: {
+                    ...fakeServerless.service,
                     custom: {
                         elasticsearch: {
                             "cf-endpoint": "TestCfEndpoint"
@@ -276,6 +284,7 @@ describe("Plugin", () => {
             return {
                 ...fakeServerless,
                 service: {
+                    ...fakeServerless.service,
                     custom: {
                         elasticsearch: {
                             ...endpointConfig,
@@ -372,6 +381,7 @@ describe("Plugin", () => {
             return {
                 ...fakeServerless,
                 service: {
+                    ...fakeServerless.service,
                     custom: {
                         elasticsearch: {
                             ...endpointConfig,

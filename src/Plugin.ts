@@ -1,11 +1,12 @@
-import { CLI, Hooks, Serverless, ServerlessPlugin} from "@xapp/serverless-plugin-type-definitions";
-import { CloudFormation, SharedIniFileCredentials } from "aws-sdk";
+import { CLI, Hooks, Serverless, ServerlessPlugin, ServerlessProvider } from "@xapp/serverless-plugin-type-definitions";
+import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
-import * as AwsUtils from "./AwsUtils";
-import Config, { Index, Repository, Template } from "./Config";
-import * as ServerlessUtils from "./ServerlessObjUtils";
+import { findCloudformationExport, parseConfigObject } from "./AwsUtils";
+import Config, { Index, Template } from "./Config";
+import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
+import { setupRepo } from "./SetupRepo";
 
 interface Custom {
     elasticsearch?: Config;
@@ -15,7 +16,6 @@ class Plugin implements ServerlessPlugin {
 
     private serverless: Serverless<Custom>;
     private cli: CLI;
-    private config: Config;
     hooks: Hooks;
 
     constructor(serverless: Serverless<Custom>, context: any) {
@@ -23,7 +23,7 @@ class Plugin implements ServerlessPlugin {
         this.cli = serverless.cli;
 
         this.hooks = {
-            "before:aws:deploy:deploy:updateStack": this.create.bind(this),
+            "before:aws:deploy:deploy:updateStack": this.validate.bind(this),
             "after:aws:deploy:deploy:updateStack": this.setupElasticCache.bind(this)
         };
     }
@@ -31,11 +31,11 @@ class Plugin implements ServerlessPlugin {
     /**
      * Creates the plugin with the fully parsed Serverless object.
      */
-    private async create() {
+    private async validate() {
         const custom = this.serverless.service.custom || {};
-        this.config = custom.elasticsearch || {};
+        const config = custom.elasticsearch || {};
 
-        if (!this.config.endpoint && !this.config["cf-endpoint"]) {
+        if (!config.endpoint && !config["cf-endpoint"]) {
             throw new Error("Elasticsearch endpoint not specified.");
         }
     }
@@ -44,40 +44,65 @@ class Plugin implements ServerlessPlugin {
      * Sends the mapping information to elasticsearch.
      */
     private async setupElasticCache() {
-        let domain = this.config.endpoint;
-        if (this.config["cf-endpoint"]) {
-            const cloudFormation = new CloudFormation({
-                region: ServerlessUtils.getRegion(this.serverless),
-                credentials: new SharedIniFileCredentials({
-                    profile: this.config["aws-profile"] || ServerlessUtils.getProfile(this.serverless)
-                })
-            });
-            domain = await AwsUtils.findCloudformationExport(cloudFormation, this.config["cf-endpoint"]);
-            if (!domain) {
-                throw new Error("Endpoint not found at cloudformation export.");
-            }
-        }
-
-        const endpoint = domain.startsWith("http") ? domain : `https://${domain}`;
+        const serviceName = await getProviderName(this.serverless);
+        const profile = getProfile(this.serverless);
+        const region = getRegion(this.serverless);
 
         const requestOptions: Partial<Request.Options> = {};
-        if (this.config["aws-profile"]) {
-            const sharedIni = new SharedIniFileCredentials({ profile: this.config["aws-profile"] });
+        if (serviceName === "aws") {
+            AWSConfig.credentials = new SharedIniFileCredentials({ profile });
+            AWSConfig.region = region;
             requestOptions.aws = {
-                key: sharedIni.accessKeyId,
-                secret: sharedIni.secretAccessKey,
+                key: AWSConfig.credentials.accessKeyId,
+                secret: AWSConfig.credentials.secretAccessKey,
                 sign_version: 4
             } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
         }
 
+        const config = await parseConfig(this.serverless);
+        const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
+
         this.cli.log("Setting up templates...");
-        await setupTemplates(endpoint, this.config.templates, requestOptions);
+        await setupTemplates(endpoint, config.templates, requestOptions);
         this.cli.log("Setting up indices...");
-        await setupIndices(endpoint, this.config.indices, requestOptions);
+        await setupIndices(endpoint, config.indices, requestOptions);
         this.cli.log("Setting up repositories...");
-        await setupRepo(endpoint, this.config.repositories, requestOptions);
+        await setupRepo({
+            baseUrl: endpoint,
+            sts: new STS(),
+            repos: config.repositories,
+            requestOptions
+        });
         this.cli.log("Elasticsearch setup complete.");
     }
+}
+
+/**
+ * Parses the config object so all attributes are usable values.
+ *
+ * If the user has defined "cf-Endpoint" then the correct value will be moved to "endpoint".
+ *
+ * @param serverless
+ */
+async function parseConfig(serverless: Serverless<Custom>): Promise<Config> {
+    const provider = serverless.service.provider || {} as Partial<ServerlessProvider>;
+    const custom = serverless.service.custom || {};
+    let config = custom.elasticsearch || {} as Config;
+
+    if (provider.name === "aws" || config["cf-endpoint"]) {
+        const cloudFormation = new CloudFormation();
+
+        config = await parseConfigObject(cloudFormation, getStackName(serverless), config);
+
+        if (config["cf-endpoint"]) {
+            config.endpoint = await findCloudformationExport(cloudFormation, config["cf-endpoint"]);
+            if (!config.endpoint) {
+                throw new Error("Endpoint not found at cloudformation export.");
+            }
+        }
+    }
+
+    return config;
 }
 
 /**
@@ -130,31 +155,6 @@ function validateTemplate(template: Template) {
     if (!template.file) {
         throw new Error("Template does not have a file location.");
     }
-}
-
-/**
- * Sets up all the repos.
- * @param baseUrl
- * @param repo
- */
-function setupRepo(baseUrl: string, repos: Repository[] = [], requestOptions: Partial<Request.Options>) {
-    const setupPromises: PromiseLike<Request.FullResponse>[] = repos.map((repo) => {
-        validateRepo(repo);
-        const { name, type, settings } = repo;
-        const url = `${baseUrl}/_snapshot/${name}`;
-        return esPut(url, { type, settings }, requestOptions);
-    });
-    return Promise.all(setupPromises);
-}
-
-function validateRepo(repo: Repository) {
-    if (!repo.name) {
-        throw new Error("Repo does not have a name.");
-    }
-    if (!repo.type) {
-        throw new Error("Repo does not have a type.");
-    }
-    // The settings will be validated by Elasticsearch.
 }
 
 function esPut(url: string, settings: object, requestOpts?: Partial<Request.Options>) {

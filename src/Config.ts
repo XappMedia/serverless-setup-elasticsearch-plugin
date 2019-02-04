@@ -11,9 +11,27 @@ export interface Template {
 export type S3RepositoryType = "s3";
 
 export interface S3RepositorySettings {
+    /**
+     * The s3 bucket to send backups to.
+     */
     bucket: string;
+    /**
+     * The region that the s3 bucket is in.
+     */
     region: string;
-    role_arn: string;
+    /**
+     * The ARN that Elasticsearch will assume to send items.
+     * Either this or `role_name` must be set.
+     */
+    role_arn?: string;
+    /**
+     * The ARN that Elasticsearch will assume to send items.
+     * Either this or `role_arn` must be set.
+     */
+    role_name?: string;
+    /**
+     * Whether or not the repository is encrypted on server.
+     */
     server_side_encryption?: boolean;
 }
 
@@ -55,11 +73,6 @@ export interface PluginConfig {
      * The repositories to be set for Elasticsearch
      */
     "repositories"?: Repository[];
-
-    /**
-     * The AWS Profile credentials that is to be used to send information to the Elasticsearch server.
-     */
-    "aws-profile"?: string;
 }
 
 export default PluginConfig;
