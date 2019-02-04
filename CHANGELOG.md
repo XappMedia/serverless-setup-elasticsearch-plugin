@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.1.0"></a>
+# [0.1.0](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.14...v0.1.0) (2019-02-04)
+
+
+### Features
+
+* Adding "repository" setup ([029ffae](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/029ffae))
+* Adding ability to add repos. ([0923f88](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/0923f88))
+
+
+
 <a name="0.0.14"></a>
 ## [0.0.14](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.13...v0.0.14) (2019-01-29)
 
