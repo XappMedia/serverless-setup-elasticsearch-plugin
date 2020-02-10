@@ -28,7 +28,7 @@ export const getStage = (serverless: Serverless<any>, defaultStage: string = "de
  */
 export const getProviderName = (serverless: Serverless<any>, defaultName?: string) => getValue(serverless.service.provider, "name", defaultName);
 
-function getValue<K extends unknown, R>(obj: K, key: keyof K, defaultValue?: R): R {
+function getValue<K extends { [key: string]: any }, R>(obj: K, key: keyof K, defaultValue?: R): R {
     return (obj || {} as K)[key] as R || defaultValue;
 }
 
