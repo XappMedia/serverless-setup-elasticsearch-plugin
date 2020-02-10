@@ -51,7 +51,7 @@ https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.
 
 ## Setting up a template
 
-Setting up a template is very similar to setting up a template. First, you must create a JSON or Javascript file that contains the body to send to elasticsearch.
+Setting up a template is very similar to setting up an index. First, you must create a JSON file that contains the body to send to elasticsearch.
 
 <projectRoot>/elasticsearch/setup/exampleTemplate.json
 ```
