@@ -93,7 +93,7 @@ jobs:
 
       - run: npm install
 
-      ##  installing the peer dependency
+      ## installing the peer dependency
       - run: npm install aws-sdk
 
       - run:
@@ -133,6 +133,4 @@ workflows:
             - test
           filters:
             branches:
-              only:
-                - master
-                - publish
+              only: master
