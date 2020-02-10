@@ -8,7 +8,7 @@ defaults: &defaults
     working_directory: ~/repo
     parallelism: 1
     docker:
-      - image: circleci/node:7.10
+      - image: circleci/node:13.8.0-stretch
 
 aliases:
     - &attachWorkspace
