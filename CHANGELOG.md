@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.1.1"></a>
+## [0.1.1](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.0...v0.1.1) (2019-02-04)
+
+
+### Bug Fixes
+
+* Adding build to circleci script ([f99cd40](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/f99cd40))
+
+
+
 <a name="0.1.0"></a>
 # [0.1.0](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.0.14...v0.1.0) (2019-02-04)
 
