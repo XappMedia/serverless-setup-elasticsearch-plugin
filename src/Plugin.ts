@@ -1,5 +1,6 @@
 import { CLI, Hooks, Serverless, ServerlessPlugin, ServerlessProvider } from "@xapp/serverless-plugin-type-definitions";
 import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
+import {AssumeRoleResponse} from "aws-sdk/clients/sts";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
@@ -52,11 +53,21 @@ class Plugin implements ServerlessPlugin {
         if (serviceName === "aws") {
             AWSConfig.credentials = new SharedIniFileCredentials({ profile });
             AWSConfig.region = region;
-            requestOptions.aws = {
-                key: AWSConfig.credentials.accessKeyId,
-                secret: AWSConfig.credentials.secretAccessKey,
-                sign_version: 4
-            } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
+            if (!AWSConfig.credentials.accessKeyId || !AWSConfig.credentials.secretAccessKey) {
+                const sts = new STS( {region: region} );
+                sts.assumeRole({
+                    // @ts-ignore
+                    RoleArn: AWSConfig.credentials.roleArn,
+                    RoleSessionName: "elastic-plugin"
+                }, function (err: any, data: AssumeRoleResponse) {
+                    requestOptions.aws = {
+                        key: data.Credentials.AccessKeyId,
+                        secret: data.Credentials.SecretAccessKey,
+                        session: data.Credentials.SessionToken,
+                        sign_version: 4
+                    } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
+                });
+            }
         }
 
         const config = await parseConfig(this.serverless);
