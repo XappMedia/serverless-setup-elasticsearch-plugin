@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.5](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.4...v0.1.5) (2020-02-12)
+
+
+### Features
+
+* Added support for aws credentials 'assumed roles' ([c9b2447](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/c9b244756b22cea1f002e59667f08c524a83e2b8))
+
 ### [0.1.4](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.3...v0.1.4) (2020-02-10)
 
 ### [0.1.3](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.1...v0.1.3) (2020-02-10)
