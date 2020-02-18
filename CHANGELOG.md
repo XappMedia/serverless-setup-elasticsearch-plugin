@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.6](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.5...v0.1.6) (2020-02-18)
+
+
+### Bug Fixes
+
+* Re-adding ability to assume normal aws keys ([751c5f6](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/751c5f6f743025a0e41c766848d093f3582b6ee8))
+
 ### [0.1.5](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.4...v0.1.5) (2020-02-12)
 
 
