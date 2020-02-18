@@ -67,6 +67,12 @@ class Plugin implements ServerlessPlugin {
                         sign_version: 4
                     } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
                 });
+            } else {
+                requestOptions.aws = {
+                    key: AWSConfig.credentials.accessKeyId,
+                    secret: AWSConfig.credentials.secretAccessKey,
+                    sign_version: 4
+                } as AWSOptions;
             }
         }
 
