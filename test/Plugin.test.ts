@@ -1,7 +1,8 @@
-import { Serverless, ServerlessPlugin } from "@xapp/serverless-plugin-type-definitions";
 import * as Chai from "chai";
 import * as path from "path";
 import * as Request from "request-promise-native";
+import * as Serverless from "serverless";
+import * as ServerlessPlugin from "serverless/classes/Plugin";
 import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
@@ -11,13 +12,12 @@ import Plugin from "../src/Plugin";
 Chai.use(SinonChai);
 const expect = Chai.expect;
 
-interface Custom {
-    elasticsearch?: Config;
-}
-
-const fakeServerless: Serverless<Custom> = {
+const fakeServerless: any = {
     service: {
-        service: "TestService",
+        getServiceName: () => "TestService",
+        provider: {
+            name: "aws"
+        }
     },
     cli: {
         log: Sinon.stub()
@@ -54,7 +54,7 @@ describe("Plugin", () => {
     describe("Create", () => {
         it("Tests that an error is thrown if there is no domain.", async () => {
             const serverless = { ...fakeServerless };
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await checkAndCatchError(
                 () => plugin.hooks["before:aws:deploy:deploy:updateStack"](),
@@ -64,7 +64,7 @@ describe("Plugin", () => {
     });
 
     describe("Setup indices", () => {
-        function createServerless(indices: Index[]): Serverless<Custom> {
+        function createServerless(indices: Index[]): Serverless {
             return {
                 ...fakeServerless,
                 service: {
@@ -93,7 +93,7 @@ describe("Plugin", () => {
             };
 
             findCloudformationExportStub.returns(Promise.resolve(undefined));
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"](), "Endpoint not found at cloudformation export.");
@@ -108,7 +108,7 @@ describe("Plugin", () => {
             ]);
             serverless.service.custom.elasticsearch.endpoint = "TestCfEndpoint";
 
-            const plugin: Plugin = new Plugin(serverless, {});
+            const plugin: Plugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -127,7 +127,7 @@ describe("Plugin", () => {
             serverless.service.custom.elasticsearch["cf-endpoint"] = "ABCD123";
 
             findCloudformationExportStub.returns(Promise.resolve("TestCfEndpoint"));
-            const plugin: Plugin = new Plugin(serverless, {});
+            const plugin: Plugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -143,7 +143,7 @@ describe("Plugin", () => {
                 }
             ]);
             serverless.service.custom.elasticsearch.endpoint = "https://TestCfEndpoint";
-            const plugin: Plugin = new Plugin(serverless, {});
+            const plugin: Plugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -159,7 +159,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -173,7 +173,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -187,7 +187,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             const index1 = require(path.resolve(indices[0].file));
 
@@ -210,7 +210,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             const index1 = require(path.resolve(indices[0].file));
 
@@ -236,7 +236,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             putStub.callsFake(() => Promise.reject(new RequestError("The resource could not be made.", "Some random error")));
 
@@ -256,7 +256,7 @@ describe("Plugin", () => {
                 }
             ];
             const serverless = createServerless(indices);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             const index1 = require(path.resolve(indices[0].file));
             const index2 = require(path.resolve(indices[1].file));
@@ -280,7 +280,7 @@ describe("Plugin", () => {
     });
 
     describe("Setup Templates", () => {
-        function createServerless(templates: Template[]): Serverless<Custom> {
+        function createServerless(templates: Template[]): Serverless {
             return {
                 ...fakeServerless,
                 service: {
@@ -302,7 +302,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(templates);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -315,7 +315,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(templates);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -328,7 +328,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(templates);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -353,7 +353,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(templates);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -377,7 +377,7 @@ describe("Plugin", () => {
     });
 
     describe("Setup Repo", () => {
-        function createServerless(repositories: Repository[]): Serverless<Custom> {
+        function createServerless(repositories: Repository[]): Serverless {
             return {
                 ...fakeServerless,
                 service: {
@@ -404,7 +404,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(repos);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -422,7 +422,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(repos);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
@@ -440,7 +440,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(repos);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
@@ -476,7 +476,7 @@ describe("Plugin", () => {
             }];
 
             const serverless = createServerless(repos);
-            const plugin: ServerlessPlugin = new Plugin(serverless, {});
+            const plugin: ServerlessPlugin = new Plugin(serverless);
 
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();

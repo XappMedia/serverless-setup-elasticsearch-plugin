@@ -1,9 +1,10 @@
-import { CLI, Hooks, Serverless, ServerlessPlugin, ServerlessProvider } from "@xapp/serverless-plugin-type-definitions";
 import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
 import {AssumeRoleResponse} from "aws-sdk/clients/sts";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
+import * as Serverless from "serverless";
+import * as ServerlessPlugin from "serverless/classes/Plugin";
 import { findCloudformationExport, parseConfigObject } from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
@@ -15,13 +16,11 @@ interface Custom {
 
 class Plugin implements ServerlessPlugin {
 
-    private serverless: Serverless<Custom>;
-    private cli: CLI;
-    hooks: Hooks;
+    private serverless: Serverless;
+    hooks: ServerlessPlugin.Hooks;
 
-    constructor(serverless: Serverless<Custom>, context: any) {
+    constructor(serverless: Serverless) {
         this.serverless = serverless;
-        this.cli = serverless.cli;
 
         this.hooks = {
             "before:aws:deploy:deploy:updateStack": this.validate.bind(this),
@@ -33,7 +32,7 @@ class Plugin implements ServerlessPlugin {
      * Creates the plugin with the fully parsed Serverless object.
      */
     private async validate() {
-        const custom = this.serverless.service.custom || {};
+        const custom: Custom = this.serverless.service.custom || {};
         const config = custom.elasticsearch || {};
 
         if (!config.endpoint && !config["cf-endpoint"]) {
@@ -60,12 +59,16 @@ class Plugin implements ServerlessPlugin {
                     RoleArn: AWSConfig.credentials.roleArn,
                     RoleSessionName: "elastic-plugin"
                 }, function (err: any, data: AssumeRoleResponse) {
+                    if (err) {
+                        console.error("Error loading AWS credentials.", err);
+                        return;
+                    }
                     requestOptions.aws = {
                         key: data.Credentials.AccessKeyId,
                         secret: data.Credentials.SecretAccessKey,
                         session: data.Credentials.SessionToken,
                         sign_version: 4
-                    } as AWSOptions; // The typings are wrong.  It need to include "key" and "sign_version"
+                    } as AWSOptions;
                 });
             } else {
                 requestOptions.aws = {
@@ -79,18 +82,18 @@ class Plugin implements ServerlessPlugin {
         const config = await parseConfig(this.serverless);
         const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
-        this.cli.log("Setting up templates...");
+        this.serverless.cli.log("Setting up templates...");
         await setupTemplates(endpoint, config.templates, requestOptions);
-        this.cli.log("Setting up indices...");
+        this.serverless.cli.log("Setting up indices...");
         await setupIndices(endpoint, config.indices, requestOptions);
-        this.cli.log("Setting up repositories...");
+        this.serverless.cli.log("Setting up repositories...");
         await setupRepo({
             baseUrl: endpoint,
             sts: new STS(),
             repos: config.repositories,
             requestOptions
         });
-        this.cli.log("Elasticsearch setup complete.");
+        this.serverless.cli.log("Elasticsearch setup complete.");
     }
 }
 
@@ -101,9 +104,9 @@ class Plugin implements ServerlessPlugin {
  *
  * @param serverless
  */
-async function parseConfig(serverless: Serverless<Custom>): Promise<Config> {
-    const provider = serverless.service.provider || {} as Partial<ServerlessProvider>;
-    const custom = serverless.service.custom || {};
+async function parseConfig(serverless: Serverless): Promise<Config> {
+    const provider = serverless.service.provider;
+    const custom: Custom = serverless.service.custom || {};
     let config = custom.elasticsearch || {} as Config;
 
     if (provider.name === "aws" || config["cf-endpoint"]) {
