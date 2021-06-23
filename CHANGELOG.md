@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.8](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.7...v0.1.8) (2021-06-23)
+
+
+### Bug Fixes
+
+* Updating getProfile to support new Serverless versions ([557669d](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/557669df8f8c60949a705d01063d1a8bc106d6c1))
+
 ### [0.1.7](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.6...v0.1.7) (2020-05-11)
 
 ### [0.1.6](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.5...v0.1.6) (2020-02-18)
