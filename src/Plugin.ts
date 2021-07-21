@@ -79,20 +79,23 @@ class Plugin implements ServerlessPlugin {
             }
         }
 
-        const config = await parseConfig(this.serverless);
-        const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
+        const configs = await parseConfig(this.serverless);
+        for (const config of configs) {
+            const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
-        this.serverless.cli.log("Setting up templates...");
-        await setupTemplates(endpoint, config.templates, requestOptions);
-        this.serverless.cli.log("Setting up indices...");
-        await setupIndices(endpoint, config.indices, requestOptions);
-        this.serverless.cli.log("Setting up repositories...");
-        await setupRepo({
-            baseUrl: endpoint,
-            sts: new STS(),
-            repos: config.repositories,
-            requestOptions
-        });
+            this.serverless.cli.log(`Settings up endpoint ${endpoint}.`);
+            this.serverless.cli.log("Setting up templates...");
+            await setupTemplates(endpoint, config.templates, requestOptions);
+            this.serverless.cli.log("Setting up indices...");
+            await setupIndices(endpoint, config.indices, requestOptions);
+            this.serverless.cli.log("Setting up repositories...");
+            await setupRepo({
+                baseUrl: endpoint,
+                sts: new STS(),
+                repos: config.repositories,
+                requestOptions
+            });
+        }
         this.serverless.cli.log("Elasticsearch setup complete.");
     }
 }
@@ -104,25 +107,28 @@ class Plugin implements ServerlessPlugin {
  *
  * @param serverless
  */
-async function parseConfig(serverless: Serverless): Promise<Config> {
+async function parseConfig(serverless: Serverless): Promise<Config[]> {
     const provider = serverless.service.provider;
     const custom: Custom = serverless.service.custom || {};
-    let config = custom.elasticsearch || {} as Config;
+    let configs = [].concat(custom.elasticsearch || {} as Config);
 
-    if (provider.name === "aws" || config["cf-endpoint"]) {
-        const cloudFormation = new CloudFormation();
+    const returnConfigs: Config[] = [];
+    for (const config of configs) {
+        if (provider.name === "aws" || config["cf-endpoint"]) {
+            const cloudFormation = new CloudFormation();
 
-        config = await parseConfigObject(cloudFormation, getStackName(serverless), config);
+            const newConfig: Config = await parseConfigObject(cloudFormation, getStackName(serverless), config);
 
-        if (config["cf-endpoint"]) {
-            config.endpoint = await findCloudformationExport(cloudFormation, config["cf-endpoint"]);
-            if (!config.endpoint) {
-                throw new Error("Endpoint not found at cloudformation export.");
+            if (newConfig["cf-endpoint"]) {
+                newConfig.endpoint = await findCloudformationExport(cloudFormation, config["cf-endpoint"]);
+                if (!newConfig.endpoint) {
+                    throw new Error("Endpoint not found at cloudformation export.");
+                }
             }
+            returnConfigs.push(newConfig);
         }
     }
-
-    return config;
+    return returnConfigs;
 }
 
 /**

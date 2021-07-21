@@ -116,6 +116,31 @@ describe("Plugin", () => {
             expect(putStub).to.have.been.calledWith("https://TestCfEndpoint/Index1");
         });
 
+        it("Tests that setup is called if the elasticsearch is an array.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.custom.elasticsearch = [{
+                ...serverless.service.custom.elasticsearch,
+                endpoint: "TestCfEndpoint1"
+            }, {
+                ...serverless.service.custom.elasticsearch,
+                endpoint: "TestCfEndpoint2"
+            }];
+            serverless.service.custom.elasticsearch.endpoint = "TestCfEndpoint";
+
+            const plugin: Plugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.calledWith("https://TestCfEndpoint1/Index1");
+            expect(putStub).to.have.been.calledWith("https://TestCfEndpoint2/Index1");
+        });
+
         it("Tests that https is pre-pended to the url if it does not exist from a cloudformation domain.", async () => {
             const serverless = createServerless([
                 {
