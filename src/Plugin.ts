@@ -33,10 +33,12 @@ class Plugin implements ServerlessPlugin {
      */
     private async validate() {
         const custom: Custom = this.serverless.service.custom || {};
-        const config = custom.elasticsearch || {};
+        const configs = [].concat(custom.elasticsearch || {});
 
-        if (!config.endpoint && !config["cf-endpoint"]) {
-            throw new Error("Elasticsearch endpoint not specified.");
+        for (const config of configs) {
+            if (!config.endpoint && !config["cf-endpoint"]) {
+                throw new Error("Elasticsearch endpoint not specified.");
+            }
         }
     }
 
