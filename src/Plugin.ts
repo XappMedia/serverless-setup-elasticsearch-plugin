@@ -1,5 +1,4 @@
 import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
-import {AssumeRoleResponse} from "aws-sdk/clients/sts";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
@@ -9,6 +8,8 @@ import { findCloudformationExport, parseConfigObject } from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
+
+const deepEqual = require("deep-equal");
 
 interface Custom {
     elasticsearch?: Config;
@@ -56,22 +57,17 @@ class Plugin implements ServerlessPlugin {
             AWSConfig.region = region;
             if (!AWSConfig.credentials.accessKeyId || !AWSConfig.credentials.secretAccessKey) {
                 const sts = new STS( {region: region} );
-                sts.assumeRole({
+                const data = await sts.assumeRole({
                     // @ts-ignore
                     RoleArn: AWSConfig.credentials.roleArn,
                     RoleSessionName: "elastic-plugin"
-                }, function (err: any, data: AssumeRoleResponse) {
-                    if (err) {
-                        console.error("Error loading AWS credentials.", err);
-                        return;
-                    }
-                    requestOptions.aws = {
-                        key: data.Credentials.AccessKeyId,
-                        secret: data.Credentials.SecretAccessKey,
-                        session: data.Credentials.SessionToken,
-                        sign_version: 4
-                    } as AWSOptions;
-                });
+                }).promise();
+                requestOptions.aws = {
+                    key: data.Credentials.AccessKeyId,
+                    secret: data.Credentials.SecretAccessKey,
+                    session: data.Credentials.SessionToken,
+                    sign_version: 4
+                } as AWSOptions;
             } else {
                 requestOptions.aws = {
                     key: AWSConfig.credentials.accessKeyId,
@@ -166,11 +162,30 @@ function validateIndex(index: Index) {
  * @param baseUrl The elasticsearch URL
  * @param templates The templates to set up.
  */
-function setupTemplates(baseUrl: string, templates: Template[] = [], requestOptions?: Partial<Request.Options>) {
-    const setupPromises: PromiseLike<Request.FullResponse>[] = templates.map((template) => {
+async function setupTemplates(baseUrl: string, templates: Template[] = [], requestOptions?: Partial<Request.Options>) {
+    const setupPromises: PromiseLike<Request.FullResponse>[] = templates.map(async (template) => {
         validateTemplate(template);
         const url = `${baseUrl}/_template/${template.name}`;
+
         const settings = require(Path.resolve(template.file));
+
+        // Retrieving template that already exists.
+        const previous = await esGet(url, undefined, requestOptions)
+            .then(result => JSON.parse(result))
+            .catch((error) => {
+                if (error.statusCode === 404) {
+                    return undefined;
+                }
+                throw error;
+            });
+
+        if (!!previous) {
+            const { order, ...previousSettings } = previous[template.name];
+            if (deepEqual(previousSettings.mappings, settings.mappings)) {
+                console.log("PREVIOUS", JSON.stringify(previous, undefined, 2));
+            }
+        }
+
         return esPut(url, settings, requestOptions);
     });
     return Promise.all(setupPromises);
@@ -185,11 +200,19 @@ function validateTemplate(template: Template) {
     }
 }
 
+function esGet(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
+    return networkCall("get", url, settings, requestOpts);
+}
+
 function esPut(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
+    return networkCall("put", url, settings, requestOpts);
+}
+
+function networkCall(requestFunc: "put" | "get", url: string, settings: object, requestOpts?: Partial<Request.Options>) {
     const headers = {
         "Content-Type": "application/json",
     };
-    return Request.put(url, {
+    return Request[requestFunc](url, {
         headers,
         json: settings,
         ...requestOpts
