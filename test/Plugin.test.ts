@@ -479,6 +479,143 @@ describe("Plugin", () => {
                 },
             });
         });
+
+        it("Tests that an index is swapped if requested.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+                TestTemplate1: {
+                    aliases: {
+                        alias1: {
+                        }
+                    }
+                }
+            })));
+            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+                index1: {},
+                index2_v1: {}
+            })));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(getStub.firstCall).to.have.been.calledWithMatch("https://ABCD123/_template/TestTemplate1", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: undefined,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+            expect(getStub.secondCall).to.have.been.calledWithMatch("https://ABCD123/_alias/alias1", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: undefined,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    source: {
+                        index: "index1"
+                    },
+                    dest: {
+                        index: "index1_v1"
+                    }
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    source: {
+                        index: "index2_v1"
+                    },
+                    dest: {
+                        index: "index2_v2"
+                    }
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    actions: [{
+                        add: {
+                            index: "index1_v1",
+                            alias: "alias1"
+                        }
+                    }, {
+                        remove: {
+                            index: "index1",
+                            alias: "alias1"
+                        }
+                    }]
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: {
+                    actions: [{
+                        add: {
+                            index: "index2_v2",
+                            alias: "alias1"
+                        }
+                    }, {
+                        remove: {
+                            index: "index2_v1",
+                            alias: "alias1"
+                        }
+                    }]
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+        });
     });
 
     describe("Setup Repo", () => {

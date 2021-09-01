@@ -187,6 +187,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
                     throw error;
                 });
 
+                console.log("GET", previous);
             if (!!previous) {
                 const { order, ...previousSettings } = previous[template.name];
                 if (!deepEqual(previousSettings.mappings, settings.mappings)) {
@@ -261,10 +262,10 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
         const reindexBody = {
             source: {
                 index: currentIndex
-              },
-              dest: {
+            },
+            dest: {
                 index: newIndex
-              }
+            }
         };
         await esPost(reindexUrl, reindexBody, requestOptions);
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
