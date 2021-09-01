@@ -6,6 +6,13 @@ export interface Index {
 export interface Template {
     name: string;
     file: string;
+    /**
+     * Automatically swap indices that are currently on the aliases of this template.
+     *
+     * @type {boolean}
+     * @memberof SetupTemplatesOptions
+     */
+     shouldSwapIndicesOfAliases?: boolean;
 }
 
 export type S3RepositoryType = "s3";

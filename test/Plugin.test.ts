@@ -7,7 +7,7 @@ import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
 import Config, { Index, Repository, Template } from "../src/Config";
-import Plugin from "../src/Plugin";
+import Plugin, { incrementVersionValue } from "../src/Plugin";
 
 Chai.use(SinonChai);
 const expect = Chai.expect;
@@ -49,6 +49,28 @@ describe("Plugin", () => {
 
     after(() => {
         putStub.restore();
+    });
+
+    describe(incrementVersionValue.name, async () => {
+        it("Tests that the version is incremented when no version is present.", () => {
+            const value = incrementVersionValue("TestValue");
+            expect(value).to.equal("TestValue_v1");
+        });
+
+        it("Tests that the version is incremented when a version is present.", () => {
+            const value = incrementVersionValue("TestValue_v1");
+            expect(value).to.equal("TestValue_v2");
+        });
+
+        it("Tests that the version is incremented when a version is present with multiple digits.", () => {
+            const value = incrementVersionValue("TestValue_v100");
+            expect(value).to.equal("TestValue_v101");
+        });
+
+        it("Tests that weird named indices still works", () => {
+            const value = incrementVersionValue("TestValue_v100_v100");
+            expect(value).to.equal("TestValue_v100_v101");
+        });
     });
 
     describe("Create", () => {
