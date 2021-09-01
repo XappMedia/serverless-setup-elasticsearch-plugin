@@ -1,6 +1,32 @@
-import { CloudFormation } from "aws-sdk";
+import { CloudFormation, Credentials, SharedIniFileCredentials, STS } from "aws-sdk";
 import FeatureNotSupportedError from "./FeatureNotSupportedError";
 import ResourceNotFoundError from "./ResourceNotFoundError";
+
+/**
+ * Retrieves credentials which can be used to sign requests.
+ *
+ * @export
+ * @param {STS} sts
+ * @param {string} profile AWS profile name to assume.
+ * @returns {(Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">>)}
+ */
+export async function assumeRole(sts: STS, profile: string): Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">> {
+    const creds = new SharedIniFileCredentials({ profile });
+    if (!creds.accessKeyId || !creds.secretAccessKey) {
+        const data = await sts.assumeRole({
+            // @ts-ignore
+            RoleArn: creds.roleArn,
+            RoleSessionName: "elastic-plugin"
+        }).promise();
+        return {
+            accessKeyId: data.Credentials.AccessKeyId,
+            secretAccessKey: data.Credentials.SecretAccessKey,
+            sessionToken: data.Credentials.SessionToken
+        };
+    } else {
+        return Promise.resolve(creds);
+    }
+}
 
 /**
  * Returns the value of the CloudFormation exported item.

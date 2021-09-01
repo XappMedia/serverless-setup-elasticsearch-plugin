@@ -1,10 +1,10 @@
-import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
+import { CloudFormation, config as AWSConfig, STS } from "aws-sdk";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
 import * as Serverless from "serverless";
 import * as ServerlessPlugin from "serverless/classes/Plugin";
-import { findCloudformationExport, parseConfigObject } from "./AwsUtils";
+import { assumeRole, findCloudformationExport, parseConfigObject } from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
@@ -53,31 +53,20 @@ class Plugin implements ServerlessPlugin {
 
         const requestOptions: Partial<Request.Options> = {};
         if (serviceName === "aws") {
-            AWSConfig.credentials = new SharedIniFileCredentials({ profile });
+            const creds = await assumeRole(new STS({ region }), profile);
+            AWSConfig.credentials = creds;
             AWSConfig.region = region;
-            if (!AWSConfig.credentials.accessKeyId || !AWSConfig.credentials.secretAccessKey) {
-                const sts = new STS( {region: region} );
-                const data = await sts.assumeRole({
-                    // @ts-ignore
-                    RoleArn: AWSConfig.credentials.roleArn,
-                    RoleSessionName: "elastic-plugin"
-                }).promise();
-                requestOptions.aws = {
-                    key: data.Credentials.AccessKeyId,
-                    secret: data.Credentials.SecretAccessKey,
-                    session: data.Credentials.SessionToken,
-                    sign_version: 4
-                } as AWSOptions;
-            } else {
-                requestOptions.aws = {
-                    key: AWSConfig.credentials.accessKeyId,
-                    secret: AWSConfig.credentials.secretAccessKey,
-                    sign_version: 4
-                } as AWSOptions;
-            }
+            requestOptions.aws = {
+                key: creds.accessKeyId,
+                secret: creds.secretAccessKey,
+                session: creds.sessionToken,
+                sign_version: 4
+            } as AWSOptions;
         }
 
+        console.log("PARSING CONFIG");
         const configs = await parseConfig(this.serverless);
+        console.log("CONFIG PARSED");
         for (const config of configs) {
             const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 

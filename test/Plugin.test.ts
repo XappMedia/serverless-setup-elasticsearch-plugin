@@ -20,7 +20,7 @@ const fakeServerless: any = {
         }
     },
     cli: {
-        log: Sinon.stub()
+        log: (message: string) => console.log(message)
     }
 };
 
@@ -29,26 +29,42 @@ const endpointConfig: Config = {
 };
 
 describe("Plugin", () => {
-    let findCloudformationExportStub: Sinon.SinonStub;
-    let putStub: Sinon.SinonStub;
+    const sanbox = Sinon.createSandbox();
+    let findCloudformationExportStub: Sinon.SinonStub<any, any>;
+    let assumeRoleStub: Sinon.SinonStub<any, any>;
+    let putStub: Sinon.SinonStub<any, any>;
+    let postStub: Sinon.SinonStub<any, any>;
+    let getStub: Sinon.SinonStub<any, any>;
 
     before(() => {
-        putStub = Sinon.stub(Request, "put");
-        findCloudformationExportStub = Sinon.stub(AwsUtils, "findCloudformationExport");
+        putStub = sanbox.stub(Request, "put");
+        postStub = sanbox.stub(Request, "post");
+        getStub = sanbox.stub(Request, "get");
+
+        findCloudformationExportStub = sanbox.stub(AwsUtils, "findCloudformationExport");
+        assumeRoleStub = sanbox.stub(AwsUtils, "assumeRole");
     });
 
     beforeEach(() => {
-        putStub.resetHistory();
-        putStub.resetBehavior();
+        sanbox.resetHistory();
+        sanbox.resetBehavior();
+
         putStub.returns(Promise.resolve());
 
-        findCloudformationExportStub.resetHistory();
-        findCloudformationExportStub.resetBehavior();
+        postStub.returns(Promise.resolve());
+
+        getStub.returns(Promise.resolve());
+
         findCloudformationExportStub.returns(Promise.resolve(endpointConfig.endpoint));
+
+        assumeRoleStub.returns(Promise.resolve({
+            accessKeyId: "TestKeyId",
+            secretAccessKey: "TestSecret"
+        }));
     });
 
     after(() => {
-        putStub.restore();
+        sanbox.restore();
     });
 
     describe(incrementVersionValue.name, async () => {
@@ -245,7 +261,13 @@ describe("Plugin", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: index1
+                json: index1,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
 
@@ -271,7 +293,13 @@ describe("Plugin", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: index1
+                json: index1,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
 
@@ -315,13 +343,25 @@ describe("Plugin", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: index1
+                json: index1,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index2", {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: index2
+                json: index2,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
     });
@@ -386,7 +426,13 @@ describe("Plugin", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: template1
+                json: template1,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
 
@@ -412,13 +458,25 @@ describe("Plugin", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: template1
+                json: template1,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate2", {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                json: template2
+                json: template2,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
     });
@@ -499,7 +557,13 @@ describe("Plugin", () => {
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
-                }
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
 
@@ -535,7 +599,13 @@ describe("Plugin", () => {
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
-                }
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo2", {
@@ -545,7 +615,13 @@ describe("Plugin", () => {
                 json: {
                     type: repos[1].type,
                     settings: repos[1].settings
-                }
+                },
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
             });
         });
     });

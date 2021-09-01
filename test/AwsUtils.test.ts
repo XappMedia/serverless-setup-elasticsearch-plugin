@@ -13,8 +13,8 @@ const cf = new CloudFormation();
 
 describe("AwsUtils", () => {
 
-    let listExportsStub: Sinon.SinonStub;
-    let listStackResources: Sinon.SinonStub;
+    let listExportsStub: Sinon.SinonStub<any, any>;
+    let listStackResources: Sinon.SinonStub<any, any>;
 
     before(() => {
         listStackResources = Sinon.stub(cf, "listStackResources");
