@@ -64,9 +64,7 @@ class Plugin implements ServerlessPlugin {
             } as AWSOptions;
         }
 
-        console.log("PARSING CONFIG");
         const configs = await parseConfig(this.serverless);
-        console.log("CONFIG PARSED");
         for (const config of configs) {
             const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
@@ -151,12 +149,16 @@ interface SetupTemplatesOptions {
     cli?: { log: (message: string) => any };
 }
 
-interface SetupTemplatesReturn {
+type SetupTemplatesResult = Template & {
     swaps: {
         alias: string;
         oldIndex: string;
         newIndex: string;
     }[];
+};
+
+interface SetupTemplatesReturn {
+    templates: SetupTemplatesResult[];
 }
 
 /**
@@ -166,35 +168,26 @@ interface SetupTemplatesReturn {
  */
 async function setupTemplates(baseUrl: string, templates: Template[] = [], opts: SetupTemplatesOptions = {}, requestOptions?: Partial<Request.Options>): Promise<SetupTemplatesReturn> {
     const { cli = { log: () => {} } } = opts;
-    const setupPromises: PromiseLike<SetupTemplatesReturn>[] = templates.map(async (template): Promise<SetupTemplatesReturn> => {
+    const setupPromises: PromiseLike<SetupTemplatesResult>[] = templates.map(async (template): Promise<SetupTemplatesResult> => {
         validateTemplate(template);
         const url = `${baseUrl}/_template/${template.name}`;
 
         const settings = require(Path.resolve(template.file));
 
-        const returnValue: SetupTemplatesReturn = {
+        const returnValue: SetupTemplatesResult = {
+            ...template,
             swaps: []
         };
 
         if (!!template.shouldSwapIndicesOfAliases) {
             // Retrieving template that already exists.
-            const previous = await esGet(url, undefined, requestOptions)
-                .then(result => JSON.parse(result))
-                .catch((error) => {
-                    if (error.statusCode === 404) {
-                        return undefined;
-                    }
-                    throw error;
-                });
+            const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions);
 
-                console.log("GET", previous);
             if (!!previous) {
                 const { order, ...previousSettings } = previous[template.name];
                 if (!deepEqual(previousSettings.mappings, settings.mappings)) {
-                    console.log("PREVIOUS", JSON.stringify(previous, undefined, 2));
                     const { aliases } = previousSettings;
                     if (!!aliases) {
-                        console.log("ALIASES", JSON.stringify(aliases, undefined, 2));
                         const aliasNames = Object.keys(aliases);
                         for (const aliasName of aliasNames) {
                            const swapResult = await swapIndicesOfAliases({ cli, aliasName, baseUrl}, requestOptions);
@@ -210,9 +203,73 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
     });
     return Promise.all(setupPromises)
         .then((results) => results.reduce((returnValue: SetupTemplatesReturn, current) => {
-            returnValue.swaps.push(...current.swaps);
+            returnValue.templates.push(current);
             return returnValue;
-        }, { swaps: [] }));
+        }, { templates: [] }));
+}
+
+interface PreviousTemplateAttributes {
+    order: number;
+    index_patterns?: string[];
+    settings: {
+        index: {
+            analysis: {
+                filter?: { [filterName: string]: any };
+                analyzer: { [analyzerName: string]: any };
+            }
+        }
+    };
+    mappings: {
+        dynamic_templates?: {
+            [dynamicTemplateName: string]: {
+                mapping: {
+                    type: string,
+                    fields: { [ fieldName: string]: any }
+                },
+                match_mapping_type: string
+            }
+        };
+        properties: {
+            [propertyName: string]: any;
+        }
+    };
+    aliases?: {
+        [aliasName: string]: any
+    };
+}
+
+interface PreviousTemplate {
+    [templateName: string]: PreviousTemplateAttributes;
+}
+
+function returnPreviousTemplates(baseUrl: string, templateName: string, requestOptions?: Partial<Request.Options>): Promise<PreviousTemplate> {
+    const url = `${baseUrl}/_template/${templateName}`;
+    return esGet(url, undefined, requestOptions)
+        .then(result => JSON.parse(result))
+        .catch((error) => {
+            if (error.statusCode === 404) {
+                return undefined;
+            }
+            throw error;
+        });
+}
+
+interface PreviousAliases {
+    [indexName: string]: {
+        [aliasName: string]: any;
+    };
+}
+
+function returnCurrentAliases(baseUrl: string, aliasName: string, requestOptions?: Partial<Request.Options>): Promise<PreviousAliases> {
+    const url = `${baseUrl}/_alias/${aliasName}`;
+    return esGet(url, undefined, requestOptions)
+        .then(result => JSON.parse(result))
+        .catch((error) => {
+            if (error.statusCode === 404) {
+                return undefined;
+            }
+            throw error;
+        });
 }
 
 function validateTemplate(template: Template) {
@@ -240,21 +297,13 @@ interface SwapIndiciesReturn {
 
 async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOptions?: Partial<Request.Options>): Promise<SwapIndiciesReturn> {
     const { cli = { log: () => {} }, baseUrl, aliasName } = props;
-    const aliasesUrl = `${baseUrl}/_alias/${aliasName}`;
     cli.log(`Retrieving indices for ${aliasName}.`);
-    const currentAliases = await esGet(aliasesUrl, undefined, requestOptions)
-        .then(result => JSON.parse(result))
-        .catch((error) => {
-            if (error.statusCode === 404) {
-                return undefined;
-            }
-            throw error;
-        });
+    const currentAliases = await returnCurrentAliases(baseUrl, aliasName, requestOptions);
 
     const returnValue: SwapIndiciesReturn = {
         swaps: []
     };
-    const currentIndices = Object.keys(currentAliases);
+    const currentIndices = !!currentAliases ? Object.keys(currentAliases) : [];
     for (const currentIndex of currentIndices) {
         const newIndex = incrementVersionValue(currentIndex);
         cli.log(`Reindexing ${currentIndex} to ${newIndex}.`);
@@ -291,7 +340,6 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
             newIndex
         });
     }
-    console.log("SWAPS", JSON.stringify(returnValue, undefined, 2));
     return returnValue;
 }
 

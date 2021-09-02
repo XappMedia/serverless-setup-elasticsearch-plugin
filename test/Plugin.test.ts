@@ -480,6 +480,122 @@ describe("Plugin", () => {
             });
         });
 
+        it("Tests that an index is not swapped if the previous template is not found.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
+            notFoundError.statusCode = 404;
+            getStub.onFirstCall().returns(Promise.reject(notFoundError));
+            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+                index1: {},
+                index2_v1: {}
+            })));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_reindex");
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_aliases");
+        });
+
+        it("Tests that an error is thrown if status code is returned that's not a 404 when retrieving previous templates", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
+            networkError.statusCode = 500;
+            getStub.onFirstCall().returns(Promise.reject(networkError));
+            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+                index1: {},
+                index2_v1: {}
+            })));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+
+            let caughtError: Error;
+            try {
+                await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+            } catch (e) {
+                caughtError = e;
+            }
+            expect(caughtError).to.equal(networkError);
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_reindex");
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_aliases");
+        });
+
+        it("Tests that an index is not swapped if the previous alias is not found.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
+            notFoundError.statusCode = 404;
+            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+                TestTemplate1: {
+                    aliases: {
+                        alias1: {
+                        }
+                    }
+                }
+            })));
+            getStub.onSecondCall().returns(Promise.reject(notFoundError));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_reindex");
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_aliases");
+        });
+
+        it("Tests that an error is thrown if status code is returned that's not a 404 when retrieving previous aliases", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
+            networkError.statusCode = 500;
+            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+                TestTemplate1: {
+                    aliases: {
+                        alias1: {
+                        }
+                    }
+                }
+            })));
+            getStub.onSecondCall().returns(Promise.reject(networkError));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+
+            let caughtError: Error;
+            try {
+                await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+            } catch (e) {
+                caughtError = e;
+            }
+            expect(caughtError).to.equal(networkError);
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_reindex");
+            expect(postStub).to.not.have.been.calledWithMatch("https://ABCD123/_aliases");
+        });
+
         it("Tests that an index is swapped if requested.", async () => {
             const templates: Template[] = [{
                 name: "TestTemplate1",
