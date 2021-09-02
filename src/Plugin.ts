@@ -65,6 +65,7 @@ class Plugin implements ServerlessPlugin {
         }
 
         const configs = await parseConfig(this.serverless);
+        const templateVariables: ServerlessVariablesTemplateUpdate = { indices: {} };
         for (const config of configs) {
             const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
@@ -72,6 +73,14 @@ class Plugin implements ServerlessPlugin {
             this.serverless.cli.log("Setting up templates...");
             const setupTemplateResult = await setupTemplates(endpoint, config.templates, { cli: this.serverless.cli }, requestOptions);
             console.log("TEMPLATE SETUP RESULT", JSON.stringify(setupTemplateResult, undefined, 2));
+
+            for (const setupTemplate of setupTemplateResult.templates) {
+                const { swaps } = setupTemplate;
+                for (const swap of swaps) {
+                    templateVariables.indices[stripVersion(swap.oldIndex)] = swap.newIndex;
+                }
+            }
+
             this.serverless.cli.log("Setting up indices...");
             await setupIndices(endpoint, config.indices, requestOptions);
             this.serverless.cli.log("Setting up repositories...");
@@ -82,8 +91,102 @@ class Plugin implements ServerlessPlugin {
                 requestOptions
             });
         }
+
+        console.log("VARIABLE", JSON.stringify(templateVariables, undefined, 2));
+        replaceServerlessTemplates({ template: templateVariables }, this.serverless);
+
         this.serverless.cli.log("Elasticsearch setup complete.");
     }
+}
+
+/**
+ * Variables related to the template update.
+ *
+ * @interface ServerlessVariablesTemplateUpdate
+ */
+interface ServerlessVariablesTemplateUpdate {
+    /**
+     * The "real name" of the index.  This is the part that starts is before the "_v#" value.
+     *
+     * So if the index is "MyIndex", the "real name" is "MyIndex".
+     *
+     * If the index is "MyIndex_v1", the "real name" is "MyIndex".
+     *
+     * The "key" is the real name.  The value is the name to replace it with.
+     *
+     * @type {string}
+     * @memberof ServerlessVariablesTemplateUpdate
+     */
+    indices: {
+        [name: string]: string;
+    };
+}
+
+interface ServerlessVariables {
+    /**
+     * Variables related to the template update.
+     *
+     * @type {{
+     *         index: string;
+     *     }}
+     * @memberof ServerlessVariables
+     */
+    template: ServerlessVariablesTemplateUpdate;
+}
+
+/**
+ * Replaces variables in the serverless object.  A variable must start with `${esSetup`.
+ *
+ * The remaining variable is the name of the ServerlessVariable and a name to replace.
+ *
+ * For example
+ *
+ * ${esSetup.template.indices: index1}
+ *
+ * Corresponds to the value:
+ *
+ * {
+ *    template: {
+ *       indices: {
+ *           index1: <Value to replace the variable>
+ *       }
+ *    }
+ * }
+ *
+ * @export
+ * @template OBJ
+ * @param {ServerlessVariables} serverlessVariables
+ * @param {OBJ} objToReplace
+ * @returns {OBJ}
+ */
+export function replaceServerlessTemplates<OBJ>(serverlessVariables: ServerlessVariables, objToReplace: OBJ): OBJ {
+    const keyRegex = /\${esSetup\.([a-z._\-0-9]+):([ a-z0-9]+)}/;
+    if (typeof objToReplace === "object" ) {
+        const serverlessKeys = Object.keys(objToReplace || {}) as (keyof OBJ)[];
+        for (const serverlessKey of serverlessKeys) {
+            objToReplace[serverlessKey] = replaceServerlessTemplates(serverlessVariables, objToReplace[serverlessKey]);
+        }
+    } else if (typeof objToReplace === "string") {
+        const match = objToReplace.match(keyRegex);
+        if (!!match) {
+            const variableName = match[1];
+            const variableValue = match[2];
+            const serverlessVariableKeys = `${variableName}.${variableValue}`.split(".").map(s => s.trim());
+            let serverlessVariableValue: any = serverlessVariables;
+            for (const key of serverlessVariableKeys) {
+                serverlessVariableValue = serverlessVariableValue[key];
+            }
+            // The OBJ to be returned is of type "string", but Typescript doesn't see it that way.
+            return objToReplace.replace(match[0], serverlessVariableValue) as any;
+        }
+    } else if (Array.isArray(objToReplace)) {
+        // We know "OBJ" is an array because of the check but Typescript is unhappy with that.
+        for (let i = 0; i < objToReplace.length; ++i) {
+            objToReplace[i] = replaceServerlessTemplates(serverlessVariables, objToReplace[i]);
+        }
+    }
+
+    return objToReplace;
 }
 
 /**
@@ -349,6 +452,12 @@ export function incrementVersionValue(value: string) {
     const name = !!matches ? matches[1] : value;
     const versionNumber = !!matches && !Number.isNaN(Number.parseInt(matches[3])) ? Number.parseInt(matches[3]) : 0;
     return `${name}_v${versionNumber + 1}`;
+}
+
+export function stripVersion(value: string) {
+    const versionRegex = /(.+)(_v(\d+)?)/;
+    const matches = value.match(versionRegex);
+    return !!matches ? matches[1] : value;
 }
 
 function esGet(url: string, settings: object, requestOpts?: Partial<Request.Options>) {

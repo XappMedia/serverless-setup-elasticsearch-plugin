@@ -7,7 +7,7 @@ import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
 import Config, { Index, Repository, Template } from "../src/Config";
-import Plugin, { incrementVersionValue } from "../src/Plugin";
+import Plugin, { incrementVersionValue, replaceServerlessTemplates, stripVersion } from "../src/Plugin";
 
 Chai.use(SinonChai);
 const expect = Chai.expect;
@@ -65,6 +65,116 @@ describe("Plugin", () => {
 
     after(() => {
         sanbox.restore();
+    });
+
+    describe(stripVersion.name, async () => {
+        it("Strips the version off the name", () => {
+            expect(stripVersion("MyName_v1")).to.equal("MyName");
+        });
+
+        it("Ignores no version", () => {
+            expect(stripVersion("MyName")).to.equal("MyName");
+        });
+
+        it("Keeps a sub version", () => {
+            expect(stripVersion("MyName_v1_v1")).to.equal("MyName_v1");
+        });
+    });
+
+    describe(replaceServerlessTemplates.name, async () => {
+        describe("template.indices", () => {
+            it("Tests that the template is replaced.", async () => {
+                const serverless = {
+                    ...fakeServerless,
+                    functions: {
+                        myFunc: {
+                            name: "MyFuncName",
+                            environment: {
+                                INDEX: "${esSetup.template.indices: index1}",
+                                VALUE: "${self:custom.value}",
+                                VALUE2: "MyValue",
+                                boolValue: true,
+                                numValue: 3
+                            }
+                        }
+                    },
+                    resources: {
+                        Resource: {
+                            myResource: {
+                                // tslint:disable-next-line
+                                nullAttrib: null,
+                                undefinedAttrib: undefined,
+                                arrAttrib: [
+                                    "test ${esSetup.template.indices:index2} string ",
+                                    "${esSetup.template.indices:    index3}"
+                                ],
+                                arrObjAttrib: [{
+                                    param1: "my template ${esSetup.template.indices: index4}"
+                                }]
+                            }
+                        },
+                        Outputs: {
+                            myOutput: {
+                                Value: "${esSetup.template.indices: index5}",
+                                Export: "es_index_${esSetup.template.indices: index6}"
+                            }
+                        }
+                    }
+                };
+                const variables = {
+                    template: {
+                        indices: {
+                            index1: "index1_v1",
+                            index2: "index2_v1",
+                            index3: "index3_v1",
+                            index4: "index4_v1",
+                            index5: "index5_v1",
+                            index6: "index6_v1",
+                            index7: "index7_v1",
+                        }
+                    }
+                };
+                const returnServerless = replaceServerlessTemplates(variables, serverless);
+                expect(returnServerless).to.deep.equal({
+                    ...fakeServerless,
+                    functions: {
+                        myFunc: {
+                            name: "MyFuncName",
+                            environment: {
+                                INDEX: "index1_v1",
+                                VALUE: "${self:custom.value}",
+                                VALUE2: "MyValue",
+                                boolValue: true,
+                                numValue: 3
+                            }
+                        }
+                    },
+                    resources: {
+                        Resource: {
+                            myResource: {
+                                // tslint:disable-next-line
+                                nullAttrib: null,
+                                undefinedAttrib: undefined,
+                                arrAttrib: [
+                                    "test index2_v1 string ",
+                                    "index3_v1"
+                                ],
+                                arrObjAttrib: [{
+                                    param1: "my template index4_v1"
+                                }]
+                            }
+                        },
+                        Outputs: {
+                            myOutput: {
+                                Value: "index5_v1",
+                                Export: "es_index_index6_v1"
+                            }
+                        }
+                    }
+                });
+                expect(serverless, "The original object was not modified.  It should be modified.").to.deep.equal(returnServerless);
+            });
+        });
     });
 
     describe(incrementVersionValue.name, async () => {
@@ -730,6 +840,101 @@ describe("Plugin", () => {
                     session: undefined,
                     sign_version: 4
                 },
+            });
+        });
+
+        it.only("Tests that all variables in the serverless templates are replaced with the swapped index.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: true
+            }];
+
+            const serverless: any = createServerless(templates);
+            serverless.functions = {
+                ...serverless.functions,
+                testFunc: {
+                    name: "MyFunc",
+                    environment: {
+                        INDEX: "${esSetup.template.indices: index1}"
+                    }
+                }
+            };
+            serverless.resources = {
+                ...serverless.resources,
+                Resources: {
+                    testResource: {
+                        arrAttribute: [
+                            "${esSetup.template.indices: index1}",
+                            "${esSetup.template.indices: index2}",
+                        ],
+                        arrObjAttribute: [{
+                            param1: "${esSetup.template.indices: index1}"
+                        }, {
+                            param2: ["${esSetup.template.indices: index2}"]
+                        }]
+                    }
+                },
+                Outputs: {
+                    ...serverless.resources?.Outputs,
+                    testOutput: {
+                        Value: "${esSetup.template.indices: index1}",
+                        Export: "esSetup-${esSetup.template.indices: index2}"
+                    }
+                }
+            };
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+                TestTemplate1: {
+                    aliases: {
+                        alias1: {
+                        }
+                    }
+                }
+            })));
+            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+                index1: {},
+                index2_v1: {}
+            })));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(serverless).to.deep.equal({
+                ...serverless,
+                functions: {
+                    ...serverless.functions,
+                    testFunc: {
+                        name: "MyFunc",
+                        environment: {
+                            INDEX: "index1_v1"
+                        }
+                    }
+                },
+                resources: {
+                    ...serverless.resources,
+                    Resources: {
+                        ...serverless.resources?.Resources,
+                        testResource: {
+                            arrAttribute: [
+                                "index1_v1",
+                                "index2_v2",
+                            ],
+                            arrObjAttribute: [{
+                                param1: "index1_v1"
+                            }, {
+                                param2: ["index2_v2"]
+                            }]
+                        }
+                    },
+                    Outputs: {
+                        ...serverless.resources?.Outputs,
+                        testOutput: {
+                            Value: "index1_v1",
+                            Export: "esSetup-index2_v2"
+                        }
+                    }
+                }
             });
         });
     });
