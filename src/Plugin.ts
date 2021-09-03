@@ -92,9 +92,6 @@ class Plugin implements ServerlessPlugin {
             });
         }
 
-        console.log("VARIABLE", JSON.stringify(templateVariables, undefined, 2));
-        replaceServerlessTemplates({ template: templateVariables }, this.serverless);
-
         this.serverless.cli.log("Elasticsearch setup complete.");
     }
 }
@@ -135,13 +132,13 @@ interface ServerlessVariables {
 }
 
 /**
- * Replaces variables in the serverless object.  A variable must start with `${esSetup`.
+ * Replaces variables in the serverless object.  A variable must start with `{{esSetup`.
  *
  * The remaining variable is the name of the ServerlessVariable and a name to replace.
  *
  * For example
  *
- * ${esSetup.template.indices: index1}
+ * {{esSetup.template.indices: index1}}
  *
  * Corresponds to the value:
  *
@@ -160,32 +157,35 @@ interface ServerlessVariables {
  * @returns {OBJ}
  */
 export function replaceServerlessTemplates<OBJ>(serverlessVariables: ServerlessVariables, objToReplace: OBJ): OBJ {
-    const keyRegex = /\${esSetup\.([a-z._\-0-9]+):([ a-z0-9]+)}/;
-    if (typeof objToReplace === "object" ) {
-        const serverlessKeys = Object.keys(objToReplace || {}) as (keyof OBJ)[];
-        for (const serverlessKey of serverlessKeys) {
-            objToReplace[serverlessKey] = replaceServerlessTemplates(serverlessVariables, objToReplace[serverlessKey]);
-        }
-    } else if (typeof objToReplace === "string") {
+    const keyRegex = /{{esSetup\.([a-z._\-0-9]+):([ a-z0-9]+)}}/;
+    if (typeof objToReplace === "string") {
         const match = objToReplace.match(keyRegex);
         if (!!match) {
             const variableName = match[1];
             const variableValue = match[2];
             const serverlessVariableKeys = `${variableName}.${variableValue}`.split(".").map(s => s.trim());
             let serverlessVariableValue: any = serverlessVariables;
+            let wasSet: boolean = false; // Need to keep track if the user explicitly set the value.
             for (const key of serverlessVariableKeys) {
-                serverlessVariableValue = serverlessVariableValue[key];
+                wasSet = serverlessVariableValue.hasOwnProperty(key);
+                if (wasSet) {
+                    serverlessVariableValue = serverlessVariableValue[key];
+                }
             }
             // The OBJ to be returned is of type "string", but Typescript doesn't see it that way.
-            return objToReplace.replace(match[0], serverlessVariableValue) as any;
+            return wasSet ? objToReplace.replace(match[0], serverlessVariableValue) as any : objToReplace;
         }
     } else if (Array.isArray(objToReplace)) {
         // We know "OBJ" is an array because of the check but Typescript is unhappy with that.
         for (let i = 0; i < objToReplace.length; ++i) {
             objToReplace[i] = replaceServerlessTemplates(serverlessVariables, objToReplace[i]);
         }
+    } else if (typeof objToReplace === "object") {
+        const serverlessKeys = Object.keys(objToReplace || {}) as (keyof OBJ)[];
+        for (const serverlessKey of serverlessKeys) {
+            objToReplace[serverlessKey] = replaceServerlessTemplates(serverlessVariables, objToReplace[serverlessKey]);
+        }
     }
-
     return objToReplace;
 }
 

@@ -83,6 +83,39 @@ describe("Plugin", () => {
 
     describe(replaceServerlessTemplates.name, async () => {
         describe("template.indices", () => {
+            it("Tests that empty indices is handled.", async () => {
+                const serverless = {
+                    ...fakeServerless,
+                    functions: {
+                        myFunc: {
+                            name: "MyFuncName",
+                            environment: {
+                                INDEX: "{{esSetup.template.indices: index1}}",
+                            }
+                        }
+                    }
+                };
+                const variables = {
+                    template: {
+                        indices: {
+                        }
+                    }
+                };
+                const returnServerless = replaceServerlessTemplates(variables, serverless);
+                expect(returnServerless).to.deep.equal({
+                    ...fakeServerless,
+                    functions: {
+                        myFunc: {
+                            name: "MyFuncName",
+                            environment: {
+                                INDEX: "{{esSetup.template.indices: index1}}",
+                            }
+                        }
+                    }
+                });
+                expect(serverless, "The original object was not modified.  It should be modified.").to.deep.equal(returnServerless);
+            });
+
             it("Tests that the template is replaced.", async () => {
                 const serverless = {
                     ...fakeServerless,
@@ -90,8 +123,8 @@ describe("Plugin", () => {
                         myFunc: {
                             name: "MyFuncName",
                             environment: {
-                                INDEX: "${esSetup.template.indices: index1}",
-                                VALUE: "${self:custom.value}",
+                                INDEX: "{{esSetup.template.indices: index1}}",
+                                VALUE: "{{self:custom.value}}",
                                 VALUE2: "MyValue",
                                 boolValue: true,
                                 numValue: 3
@@ -105,18 +138,18 @@ describe("Plugin", () => {
                                 nullAttrib: null,
                                 undefinedAttrib: undefined,
                                 arrAttrib: [
-                                    "test ${esSetup.template.indices:index2} string ",
-                                    "${esSetup.template.indices:    index3}"
+                                    "test {{esSetup.template.indices:index2}} string ",
+                                    "{{esSetup.template.indices:    index3}}"
                                 ],
                                 arrObjAttrib: [{
-                                    param1: "my template ${esSetup.template.indices: index4}"
+                                    param1: "my template {{esSetup.template.indices: index4}}"
                                 }]
                             }
                         },
                         Outputs: {
                             myOutput: {
-                                Value: "${esSetup.template.indices: index5}",
-                                Export: "es_index_${esSetup.template.indices: index6}"
+                                Value: "{{esSetup.template.indices: index5}}",
+                                Export: "es_index_{{esSetup.template.indices: index6}}"
                             }
                         }
                     }
@@ -142,7 +175,7 @@ describe("Plugin", () => {
                             name: "MyFuncName",
                             environment: {
                                 INDEX: "index1_v1",
-                                VALUE: "${self:custom.value}",
+                                VALUE: "{{self:custom.value}}",
                                 VALUE2: "MyValue",
                                 boolValue: true,
                                 numValue: 3
@@ -840,101 +873,6 @@ describe("Plugin", () => {
                     session: undefined,
                     sign_version: 4
                 },
-            });
-        });
-
-        it.only("Tests that all variables in the serverless templates are replaced with the swapped index.", async () => {
-            const templates: Template[] = [{
-                name: "TestTemplate1",
-                file: "./test/testFiles/TestTemplate1.json",
-                shouldSwapIndicesOfAliases: true
-            }];
-
-            const serverless: any = createServerless(templates);
-            serverless.functions = {
-                ...serverless.functions,
-                testFunc: {
-                    name: "MyFunc",
-                    environment: {
-                        INDEX: "${esSetup.template.indices: index1}"
-                    }
-                }
-            };
-            serverless.resources = {
-                ...serverless.resources,
-                Resources: {
-                    testResource: {
-                        arrAttribute: [
-                            "${esSetup.template.indices: index1}",
-                            "${esSetup.template.indices: index2}",
-                        ],
-                        arrObjAttribute: [{
-                            param1: "${esSetup.template.indices: index1}"
-                        }, {
-                            param2: ["${esSetup.template.indices: index2}"]
-                        }]
-                    }
-                },
-                Outputs: {
-                    ...serverless.resources?.Outputs,
-                    testOutput: {
-                        Value: "${esSetup.template.indices: index1}",
-                        Export: "esSetup-${esSetup.template.indices: index2}"
-                    }
-                }
-            };
-            const plugin: ServerlessPlugin = new Plugin(serverless);
-
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
-                TestTemplate1: {
-                    aliases: {
-                        alias1: {
-                        }
-                    }
-                }
-            })));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
-                index1: {},
-                index2_v1: {}
-            })));
-            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
-            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
-
-            expect(serverless).to.deep.equal({
-                ...serverless,
-                functions: {
-                    ...serverless.functions,
-                    testFunc: {
-                        name: "MyFunc",
-                        environment: {
-                            INDEX: "index1_v1"
-                        }
-                    }
-                },
-                resources: {
-                    ...serverless.resources,
-                    Resources: {
-                        ...serverless.resources?.Resources,
-                        testResource: {
-                            arrAttribute: [
-                                "index1_v1",
-                                "index2_v2",
-                            ],
-                            arrObjAttribute: [{
-                                param1: "index1_v1"
-                            }, {
-                                param2: ["index2_v2"]
-                            }]
-                        }
-                    },
-                    Outputs: {
-                        ...serverless.resources?.Outputs,
-                        testOutput: {
-                            Value: "index1_v1",
-                            Export: "esSetup-index2_v2"
-                        }
-                    }
-                }
             });
         });
     });
