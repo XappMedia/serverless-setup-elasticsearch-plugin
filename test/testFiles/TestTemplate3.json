@@ -1,0 +1,8 @@
+{
+    "index_patterns": ["${PARAM1}_test_${PARAM2}", "test_${PARAM1}${PARAM2}_test", "test_${PARAM3}_test"],
+    "mappings": {
+        "test2": {
+            "type": "keyword"
+        }
+    }
+}

@@ -579,6 +579,39 @@ describe("Plugin", () => {
             });
         });
 
+        it("Tests that the parameters are replaced with values.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate3",
+                file: "./test/testFiles/TestTemplate3.json",
+                parameters: {
+                    PARAM1: "Value1",
+                    PARAM2: "Value2"
+                }
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            const template3 = require(path.resolve(templates[0].file));
+            template3.index_patterns = ["Value1_test_Value2", "test_Value1Value2_test", "test_${PARAM3}_test"];
+
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate3", {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                json: template3,
+                aws: {
+                    key: "TestKeyId",
+                    secret: "TestSecret",
+                    session: undefined,
+                    sign_version: 4
+                },
+            });
+        });
+
         it("Tests that a multiple templates are sent.", async () => {
             const templates: Template[] = [{
                 name: "TestTemplate1",

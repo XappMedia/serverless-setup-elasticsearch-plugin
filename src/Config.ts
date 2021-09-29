@@ -3,6 +3,10 @@ export interface Index {
     file: string;
 }
 
+export interface Parameters {
+    [key: string]: string;
+}
+
 export interface Template {
     name: string;
     file: string;
@@ -13,6 +17,13 @@ export interface Template {
      * @memberof SetupTemplatesOptions
      */
      shouldSwapIndicesOfAliases?: boolean;
+     /**
+      * Parameters to replace in the template.
+      *
+      * @type {boolean}
+      * @memberof SetupTemplatesOptions
+      */
+     parameters?: Parameters;
 }
 
 export type S3RepositoryType = "s3";

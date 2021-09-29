@@ -1,14 +1,17 @@
 import { CloudFormation, config as AWSConfig, STS } from "aws-sdk";
+import * as fs from "fs";
 import * as Path from "path";
 import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
 import * as Serverless from "serverless";
 import * as ServerlessPlugin from "serverless/classes/Plugin";
+import { promisify } from "util";
 import { assumeRole, findCloudformationExport, parseConfigObject } from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
 
+const readFile = promisify(fs.readFile);
 const deepEqual = require("deep-equal");
 
 interface Custom {
@@ -273,9 +276,11 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
     const { cli = { log: () => {} } } = opts;
     const setupPromises: PromiseLike<SetupTemplatesResult>[] = templates.map(async (template): Promise<SetupTemplatesResult> => {
         validateTemplate(template);
+
         const url = `${baseUrl}/_template/${template.name}`;
 
-        const settings = require(Path.resolve(template.file));
+        const file = await readFile(Path.resolve(template.file)).then((file) => file.toString("utf-8"));
+        const settings = JSON.parse(swapTemplateParameters(template, file));
 
         const returnValue: SetupTemplatesResult = {
             ...template,
@@ -382,6 +387,16 @@ function validateTemplate(template: Template) {
     if (!template.file) {
         throw new Error("Template does not have a file location.");
     }
+}
+
+function swapTemplateParameters(template: Template, fileContent: string): string {
+    const { parameters = {} } = template;
+    let replacedContent = fileContent;
+    for (const paramKey of Object.keys(parameters)) {
+        const regex = new RegExp(`\\\${${paramKey}}`, "g");
+        replacedContent = replacedContent.replace(regex, parameters[paramKey]);
+    }
+    return replacedContent;
 }
 
 interface SwapIndiciesOfAliasProps {
