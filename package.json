@@ -1,6 +1,6 @@
 {
   "name": "@xapp/serverless-setup-elasticsearch-plugin",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "This is a plugin that can be used by Serverless to setup an elasticsearch domain.",
   "main": "dist/index.js",
   "scripts": {

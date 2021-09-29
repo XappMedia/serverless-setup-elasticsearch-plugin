@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.12](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.11...v0.1.12) (2021-09-29)
+
+
+### Features
+
+* Adding parameteres to templates ([b49e61f](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/b49e61f227d46b909a205670e985ad449a74cc7c))
+
 ### [0.1.11](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.10...v0.1.11) (2021-09-03)
 
 ### [0.1.10](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.9...v0.1.10) (2021-07-21)
