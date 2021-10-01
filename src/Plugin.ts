@@ -210,6 +210,9 @@ async function parseConfig(serverless: Serverless): Promise<Config[]> {
 
     const returnConfigs: Config[] = [];
     for (const config of configs) {
+        if (config.hasOwnProperty("onlyOnRegion") && config.onlyOnRegion !== getRegion(serverless)) {
+            continue;
+        }
         if (provider.name === "aws" || config["cf-endpoint"]) {
             const cloudFormation = new CloudFormation();
 
