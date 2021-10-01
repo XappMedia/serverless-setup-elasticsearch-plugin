@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.13](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.12...v0.1.13) (2021-10-01)
+
+
+### Features
+
+* Adding onlyOnRegion parameter ([3d7e1e6](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/3d7e1e6ffc866e8d79048868b94eb40a950574ad))
+
 ### [0.1.12](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.11...v0.1.12) (2021-09-29)
 
 
