@@ -280,6 +280,44 @@ describe("Plugin", () => {
             await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"](), "Endpoint not found at cloudformation export.");
         });
 
+        it("Tests that nothing happens if the region being deployed to is different than the one said.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.provider.region = "us-east-1";
+            serverless.service.custom.elasticsearch.endpoint = "TestCfEndpoint";
+            serverless.service.custom.elasticsearch.onlyOnRegion = "SomeOtherRegion";
+
+            const plugin: Plugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.not.have.been.called;
+        });
+
+        it("Tests that stuff happens if the regions matches the onlyOnRegion.", async () => {
+            const serverless = createServerless([
+                {
+                    name: "Index1",
+                    file: "./test/testFiles/TestIndices1.json"
+                }
+            ]);
+            serverless.service.provider.region = "us-east-1";
+            serverless.service.custom.elasticsearch.endpoint = "TestCfEndpoint";
+            serverless.service.custom.elasticsearch.onlyOnRegion = "us-east-1";
+
+            const plugin: Plugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            expect(putStub).to.have.been.called;
+        });
+
         it("Tests that https is pre-pended to the url if it does not exist.", async () => {
             const serverless = createServerless([
                 {

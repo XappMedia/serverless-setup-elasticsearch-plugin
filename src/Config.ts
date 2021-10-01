@@ -69,6 +69,14 @@ export interface S3Repository extends Repository {
 
 export interface PluginConfig {
     /**
+     * The AWS region that must be deploying on to execute. Everything will be skipped if the
+     * region being deployed to does not equal this region.
+     *
+     * @type {string}
+     * @memberof PluginConfig
+     */
+    "onlyOnRegion"?: string;
+    /**
      * The domain endpoint of the elasticsearch server.
      */
     "endpoint"?: string;

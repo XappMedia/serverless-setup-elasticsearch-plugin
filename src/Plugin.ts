@@ -70,6 +70,10 @@ class Plugin implements ServerlessPlugin {
         const configs = await parseConfig(this.serverless);
         const templateVariables: ServerlessVariablesTemplateUpdate = { indices: {} };
         for (const config of configs) {
+            if (config.hasOwnProperty("onlyOnRegion") && config.onlyOnRegion !== region) {
+                this.serverless.cli.log(`Set to only run on region ${config.onlyOnRegion}, but deploying to region ${region}. Skipping...`);
+                continue;
+            }
             const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
             this.serverless.cli.log(`Settings up endpoint ${endpoint}.`);
