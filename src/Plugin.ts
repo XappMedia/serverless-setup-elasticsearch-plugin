@@ -452,13 +452,13 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                     alias: aliasName
                 }
             }, {
-                remove: {
-                    index: currentIndex,
-                    alias: aliasName
+                remove_index: {
+                    index: currentIndex
                   }
             }]
         };
         await esPost(aliasSwapUrl, aliasSwapBody, requestOptions);
+
         returnValue.swaps.push({
             alias: aliasName,
             oldIndex: currentIndex,
@@ -494,7 +494,11 @@ function esPost(url: string, settings: object, requestOpts?: Partial<Request.Opt
     return networkCall("post", url, settings, requestOpts);
 }
 
-function networkCall(requestFunc: "post" | "put" | "get", url: string, settings: object, requestOpts?: Partial<Request.Options>) {
+function esDelete(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
+    return networkCall("delete", url, settings, requestOpts);
+}
+
+function networkCall(requestFunc: "post" | "put" | "get" | "delete", url: string, settings: object, requestOpts?: Partial<Request.Options>) {
     const headers = {
         "Content-Type": "application/json",
     };
