@@ -1,6 +1,7 @@
 import { STS } from "aws-sdk";
 import * as Request from "request-promise-native";
 import { Repository, S3Repository } from "./Config";
+import { esPut, NetworkCredentials } from "./Network";
 
 /**
  * Takes an S3 repository and derives the role_arn from it. It then returns the modified repo.
@@ -22,6 +23,7 @@ export async function discoverRepoArn(sts: STS, repo: S3Repository): Promise<S3R
 export interface SetupRepoProps {
     baseUrl: string;
     sts: STS;
+    credentials: NetworkCredentials;
     repos?: Repository[];
     requestOptions?: Partial<Request.Options>;
 }
@@ -32,17 +34,17 @@ export interface SetupRepoProps {
  * @param repo
  */
 export function setupRepo(props: SetupRepoProps) {
-    const { baseUrl, repos, sts, requestOptions } = props;
+    const { baseUrl, repos, sts, requestOptions, credentials } = props;
     const setupPromises: PromiseLike<Request.FullResponse>[] = (repos || []).map((repo) => {
         validateRepo(repo);
         const { name } = repo;
         const url = `${baseUrl}/_snapshot/${name}`;
         const modifyRepo = (isS3Repository(repo)) ? discoverRepoArn(sts, repo) : Promise.resolve(repo);
-        return modifyRepo.then((repo) => Request.put(url, {
-            ...requestOptions,
-            headers: { "Content-Type": "application/json" },
-            json: { type: repo.type, settings: repo.settings }
-        }));
+        return modifyRepo.then((repo) => esPut(url, {
+            type: repo.type,
+            settings: repo.settings
+        },
+        requestOptions, credentials));
     });
     return Promise.all(setupPromises);
 }

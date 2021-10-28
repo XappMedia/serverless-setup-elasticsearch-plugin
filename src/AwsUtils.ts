@@ -2,6 +2,10 @@ import { CloudFormation, Credentials, SharedIniFileCredentials, STS } from "aws-
 import FeatureNotSupportedError from "./FeatureNotSupportedError";
 import ResourceNotFoundError from "./ResourceNotFoundError";
 
+export function getServiceUrl(service: string, region: string): string {
+    return `${service}.${region}.amazonaws.com`;
+}
+
 /**
  * Retrieves credentials which can be used to sign requests.
  *
@@ -11,7 +15,7 @@ import ResourceNotFoundError from "./ResourceNotFoundError";
  * @returns {(Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">>)}
  */
 export async function assumeRole(sts: STS, profile: string): Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">> {
-    const creds = new SharedIniFileCredentials({ profile });
+    const creds = new SharedIniFileCredentials({  profile, });
     if (!creds.accessKeyId || !creds.secretAccessKey) {
         const data = await sts.assumeRole({
             // @ts-ignore

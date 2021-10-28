@@ -1,15 +1,16 @@
-import { CloudFormation, config as AWSConfig, STS } from "aws-sdk";
+import { CloudFormation, config as AWSConfig, SharedIniFileCredentials, STS } from "aws-sdk";
 import * as fs from "fs";
 import * as Path from "path";
-import { AWSOptions } from "request";
 import * as Request from "request-promise-native";
 import * as Serverless from "serverless";
 import * as ServerlessPlugin from "serverless/classes/Plugin";
 import { promisify } from "util";
-import { assumeRole, findCloudformationExport, parseConfigObject } from "./AwsUtils";
+import { assumeRole, findCloudformationExport, getServiceUrl, parseConfigObject } from "./AwsUtils";
 import Config, { Index, Template } from "./Config";
+import { esGet, esPost, esPut, NetworkCredentials } from "./Network";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
+
 
 const readFile = promisify(fs.readFile);
 const deepEqual = require("deep-equal");
@@ -54,17 +55,22 @@ class Plugin implements ServerlessPlugin {
         const profile = getProfile(this.serverless);
         const region = getRegion(this.serverless);
 
-        const requestOptions: Partial<Request.Options> = {};
+        const requestOptions: Partial<Request.Options> = { };
+        const credentials: NetworkCredentials = {};
+        const sts = new STS({
+            credentials: new SharedIniFileCredentials({ profile }),
+            region,
+            endpoint: getServiceUrl("sts", region)
+        });
         if (serviceName === "aws") {
-            const creds = await assumeRole(new STS({ region }), profile);
+            const creds = await assumeRole(sts, profile);
             AWSConfig.credentials = creds;
             AWSConfig.region = region;
-            requestOptions.aws = {
-                key: creds.accessKeyId,
-                secret: creds.secretAccessKey,
-                session: creds.sessionToken,
-                sign_version: 4
-            } as AWSOptions;
+            credentials.accessKeyId = creds.accessKeyId;
+            credentials.secretAccessKey = creds.secretAccessKey;
+            credentials.sessionToken = creds.sessionToken;
+            credentials.region = region;
+            credentials.service = "es";
         }
 
         const configs = await parseConfig(this.serverless);
@@ -78,7 +84,7 @@ class Plugin implements ServerlessPlugin {
 
             this.serverless.cli.log(`Settings up endpoint ${endpoint}.`);
             this.serverless.cli.log("Setting up templates...");
-            const setupTemplateResult = await setupTemplates(endpoint, config.templates, { cli: this.serverless.cli }, requestOptions);
+            const setupTemplateResult = await setupTemplates(endpoint, config.templates, { cli: this.serverless.cli }, requestOptions, credentials);
             console.log("TEMPLATE SETUP RESULT", JSON.stringify(setupTemplateResult, undefined, 2));
 
             for (const setupTemplate of setupTemplateResult.templates) {
@@ -89,13 +95,14 @@ class Plugin implements ServerlessPlugin {
             }
 
             this.serverless.cli.log("Setting up indices...");
-            await setupIndices(endpoint, config.indices, requestOptions);
+            await setupIndices(endpoint, config.indices, requestOptions, credentials);
             this.serverless.cli.log("Setting up repositories...");
             await setupRepo({
                 baseUrl: endpoint,
-                sts: new STS(),
+                sts,
                 repos: config.repositories,
-                requestOptions
+                requestOptions,
+                credentials
             });
         }
 
@@ -214,7 +221,10 @@ async function parseConfig(serverless: Serverless): Promise<Config[]> {
             continue;
         }
         if (provider.name === "aws" || config["cf-endpoint"]) {
-            const cloudFormation = new CloudFormation();
+            const cloudFormation = new CloudFormation({
+                credentials: new SharedIniFileCredentials({ profile: getProfile(serverless) }),
+                endpoint: getServiceUrl("cloudformation", getRegion(serverless))
+            });
 
             const newConfig: Config = await parseConfigObject(cloudFormation, getStackName(serverless), config);
 
@@ -235,12 +245,12 @@ async function parseConfig(serverless: Serverless): Promise<Config[]> {
  * @param baseUrl The elasticsearch URL
  * @param indices The indices to set up.
  */
-function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions?: Partial<Request.Options>) {
+function setupIndices(baseUrl: string, indices: Index[] = [], requestOptions: Partial<Request.Options>, credentials: NetworkCredentials) {
     const setupPromises: PromiseLike<Request.FullResponse>[] = indices.map((index) => {
         validateIndex(index);
         const url = `${baseUrl}/${index.name}`;
         const settings = require(Path.resolve(index.file));
-        return esPut(url, settings, requestOptions).catch((e) => {
+        return esPut(url, settings, requestOptions, credentials).catch((e) => {
             if (e.error.error.type !== "resource_already_exists_exception") {
                 throw e;
             }
@@ -279,7 +289,7 @@ interface SetupTemplatesReturn {
  * @param baseUrl The elasticsearch URL
  * @param templates The templates to set up.
  */
-async function setupTemplates(baseUrl: string, templates: Template[] = [], opts: SetupTemplatesOptions = {}, requestOptions?: Partial<Request.Options>): Promise<SetupTemplatesReturn> {
+async function setupTemplates(baseUrl: string, templates: Template[] = [], opts: SetupTemplatesOptions = {}, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials): Promise<SetupTemplatesReturn> {
     const { cli = { log: () => {} } } = opts;
     const setupPromises: PromiseLike<SetupTemplatesResult>[] = templates.map(async (template): Promise<SetupTemplatesResult> => {
         validateTemplate(template);
@@ -296,7 +306,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
 
         if (!!template.shouldSwapIndicesOfAliases) {
             // Retrieving template that already exists.
-            const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions);
+            const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions, credentials);
 
             if (!!previous) {
                 const { order, ...previousSettings } = previous[template.name];
@@ -305,7 +315,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
                     if (!!aliases) {
                         const aliasNames = Object.keys(aliases);
                         for (const aliasName of aliasNames) {
-                           const swapResult = await swapIndicesOfAliases({ cli, aliasName, baseUrl}, requestOptions);
+                           const swapResult = await swapIndicesOfAliases({ cli, aliasName, baseUrl}, requestOptions, credentials);
                            returnValue.swaps.push(...swapResult.swaps);
                         }
                     }
@@ -313,7 +323,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
             }
         }
 
-        return esPut(url, settings, requestOptions)
+        return esPut(url, settings, requestOptions, credentials)
             .then(() => returnValue);
     });
     return Promise.all(setupPromises)
@@ -357,9 +367,9 @@ interface PreviousTemplate {
     [templateName: string]: PreviousTemplateAttributes;
 }
 
-function returnPreviousTemplates(baseUrl: string, templateName: string, requestOptions?: Partial<Request.Options>): Promise<PreviousTemplate> {
+function returnPreviousTemplates(baseUrl: string, templateName: string, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials): Promise<PreviousTemplate> {
     const url = `${baseUrl}/_template/${templateName}`;
-    return esGet(url, undefined, requestOptions)
+    return esGet(url, undefined, requestOptions, credentials)
         .then(result => JSON.parse(result))
         .catch((error) => {
             if (error.statusCode === 404) {
@@ -375,9 +385,9 @@ interface PreviousAliases {
     };
 }
 
-function returnCurrentAliases(baseUrl: string, aliasName: string, requestOptions?: Partial<Request.Options>): Promise<PreviousAliases> {
+function returnCurrentAliases(baseUrl: string, aliasName: string, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials): Promise<PreviousAliases> {
     const url = `${baseUrl}/_alias/${aliasName}`;
-    return esGet(url, undefined, requestOptions)
+    return esGet(url, undefined, requestOptions, credentials)
         .then(result => JSON.parse(result))
         .catch((error) => {
             if (error.statusCode === 404) {
@@ -420,10 +430,10 @@ interface SwapIndiciesReturn {
     }[];
 }
 
-async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOptions?: Partial<Request.Options>): Promise<SwapIndiciesReturn> {
+async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials): Promise<SwapIndiciesReturn> {
     const { cli = { log: () => {} }, baseUrl, aliasName } = props;
     cli.log(`Retrieving indices for ${aliasName}.`);
-    const currentAliases = await returnCurrentAliases(baseUrl, aliasName, requestOptions);
+    const currentAliases = await returnCurrentAliases(baseUrl, aliasName, requestOptions, credentials);
 
     const returnValue: SwapIndiciesReturn = {
         swaps: []
@@ -441,7 +451,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                 index: newIndex
             }
         };
-        await esPost(reindexUrl, reindexBody, requestOptions);
+        await esPost(reindexUrl, reindexBody, requestOptions, credentials);
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
 
         const aliasSwapUrl = `${baseUrl}/_aliases`;
@@ -457,7 +467,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                   }
             }]
         };
-        await esPost(aliasSwapUrl, aliasSwapBody, requestOptions);
+        await esPost(aliasSwapUrl, aliasSwapBody, requestOptions, credentials);
 
         returnValue.swaps.push({
             alias: aliasName,
@@ -480,33 +490,6 @@ export function stripVersion(value: string) {
     const versionRegex = /(.+)(_v(\d+)?)/;
     const matches = value.match(versionRegex);
     return !!matches ? matches[1] : value;
-}
-
-function esGet(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
-    return networkCall("get", url, settings, requestOpts);
-}
-
-function esPut(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
-    return networkCall("put", url, settings, requestOpts);
-}
-
-function esPost(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
-    return networkCall("post", url, settings, requestOpts);
-}
-
-function esDelete(url: string, settings: object, requestOpts?: Partial<Request.Options>) {
-    return networkCall("delete", url, settings, requestOpts);
-}
-
-function networkCall(requestFunc: "post" | "put" | "get" | "delete", url: string, settings: object, requestOpts?: Partial<Request.Options>) {
-    const headers = {
-        "Content-Type": "application/json",
-    };
-    return Request[requestFunc](url, {
-        headers,
-        json: settings,
-        ...requestOpts
-    });
 }
 
 export default Plugin;
