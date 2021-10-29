@@ -16,7 +16,8 @@ const fakeServerless: any = {
     service: {
         getServiceName: () => "TestService",
         provider: {
-            name: "aws"
+            name: "aws",
+            region: "us-east-1"
         }
     },
     cli: {
@@ -438,17 +439,13 @@ describe("Plugin", () => {
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
+            checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/Index1",
                 json: index1,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
         });
 
@@ -470,17 +467,13 @@ describe("Plugin", () => {
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
             // No error.
+            checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/Index1",
                 json: index1,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
         });
 
@@ -520,29 +513,20 @@ describe("Plugin", () => {
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
+            checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/Index1",
                 json: index1,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index2", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/Index2",
                 json: index2,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
         });
     });
@@ -603,17 +587,14 @@ describe("Plugin", () => {
 
             const template1 = require(path.resolve(templates[0].file));
 
+            checkAndDeleteHeadersForEveryCall(putStub);
+
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: template1,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/_template/TestTemplate1",
             });
         });
 
@@ -636,17 +617,13 @@ describe("Plugin", () => {
             const template3 = require(path.resolve(templates[0].file));
             template3.index_patterns = ["Value1_test_Value2", "test_Value1Value2_test", "test_${PARAM3}_test"];
 
+            checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate3", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/_template/TestTemplate3",
                 json: template3,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
         });
 
@@ -668,29 +645,21 @@ describe("Plugin", () => {
             const template1 = require(path.resolve(templates[0].file));
             const template2 = require(path.resolve(templates[1].file));
 
+            checkAndDeleteHeadersForEveryCall(putStub);
+
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/_template/TestTemplate1",
                 json: template1,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate2", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                region: "us-east-1",
+                service: "es",
+                path: "/_template/TestTemplate2",
                 json: template2,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
         });
 
@@ -835,34 +804,17 @@ describe("Plugin", () => {
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
+            checkAndDeleteHeadersForEveryCall(getStub);
+            checkAndDeleteHeadersForEveryCall(postStub);
+            checkAndDeleteHeadersForEveryCall(putStub);
+
             expect(getStub.firstCall).to.have.been.calledWithMatch("https://ABCD123/_template/TestTemplate1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: undefined,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
             expect(getStub.secondCall).to.have.been.calledWithMatch("https://ABCD123/_alias/alias1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: undefined,
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: {
                     source: {
                         index: "index1"
@@ -871,17 +823,12 @@ describe("Plugin", () => {
                         index: "index1_v1"
                     }
                 },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                host: "abcd123",
+                path: "/_reindex",
+                region: "us-east-1",
+                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: {
                     source: {
                         index: "index2_v1"
@@ -890,17 +837,12 @@ describe("Plugin", () => {
                         index: "index2_v2"
                     }
                 },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                host: "abcd123",
+                path: "/_reindex",
+                region: "us-east-1",
+                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: {
                     actions: [{
                         add: {
@@ -908,23 +850,17 @@ describe("Plugin", () => {
                             alias: "alias1"
                         }
                     }, {
-                        remove: {
-                            index: "index1",
-                            alias: "alias1"
+                        remove_index: {
+                            index: "index1"
                         }
                     }]
                 },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                host: "abcd123",
+                path: "/_aliases",
+                region: "us-east-1",
+                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 json: {
                     actions: [{
                         add: {
@@ -932,18 +868,15 @@ describe("Plugin", () => {
                             alias: "alias1"
                         }
                     }, {
-                        remove: {
-                            index: "index2_v1",
-                            alias: "alias1"
+                        remove_index: {
+                            index: "index2_v1"
                         }
                     }]
                 },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                host: "abcd123",
+                path: "/_aliases",
+                region: "us-east-1",
+                service: "es"
             });
         });
     });
@@ -1017,19 +950,15 @@ describe("Plugin", () => {
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
+            checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                path: "/_snapshot/TestRepo",
+                region: "us-east-1",
+                service: "es",
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
-                },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
                 },
             });
         });
@@ -1059,40 +988,51 @@ describe("Plugin", () => {
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
+            checkAndDeleteHeadersForEveryCall(putStub);
+
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo1", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                path: "/_snapshot/TestRepo1",
+                region: "us-east-1",
+                service: "es",
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
-                },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                }
             });
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo2", {
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                host: "abcd123",
+                path: "/_snapshot/TestRepo2",
+                region: "us-east-1",
+                service: "es",
                 json: {
                     type: repos[1].type,
                     settings: repos[1].settings
-                },
-                aws: {
-                    key: "TestKeyId",
-                    secret: "TestSecret",
-                    session: undefined,
-                    sign_version: 4
-                },
+                }
             });
         });
     });
 });
+
+/**
+ * Every call to Elasticsearch is the same headers, but it's near
+ * impossible to mock the entire header. So this checks the headers as
+ * best as possible and removes it from the object so easier
+ * comparisons can be made.
+ *
+ * @param {Sinon.SiononStub} stub
+ */
+function checkAndDeleteHeadersForEveryCall(stub: Sinon.SinonStub) {
+    for (const call of stub.args) {
+        const headers = call[1].headers;
+        expect(headers).to.have.property("Authorization");
+        expect(headers).to.have.property("Content-Type", "application/json");
+        expect(headers).to.have.property("X-Amz-Date");
+        expect(headers).to.have.property("Host", "abcd123");
+        delete call[1].headers;
+    }
+}
 
 async function checkAndCatchError(callback: () => any, msg?: string): Promise<void> {
     let caughtError: Error;

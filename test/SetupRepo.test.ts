@@ -55,6 +55,7 @@ describe("SetupRepo", () => {
                     baseUrl: "https:testUrl.com",
                     repos,
                     sts,
+                    credentials: {},
                     requestOptions: {
                         aws: {
                             secret: "ABCD123"
@@ -84,6 +85,7 @@ describe("SetupRepo", () => {
                     baseUrl: "https:testUrl.com",
                     repos,
                     sts,
+                    credentials: {},
                     requestOptions: {
                         aws: {
                             secret: "ABCD123"
@@ -118,6 +120,7 @@ describe("SetupRepo", () => {
                 baseUrl: "https:testUrl.com",
                 repos,
                 sts,
+                credentials: {},
                 requestOptions: {
                     aws: {
                         secret: "ABCD123"
@@ -159,6 +162,7 @@ describe("SetupRepo", () => {
                 baseUrl: "https:testUrl.com",
                 repos: undefined,
                 sts,
+                credentials: {},
                 requestOptions: {
                     aws: {
                         secret: "ABCD123"
