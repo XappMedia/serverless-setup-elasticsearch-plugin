@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.15](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.14...v0.1.15) (2021-10-29)
+
+
+### Bug Fixes
+
+* Better signing for govcloud ([c118eb4](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/c118eb426ef0b0572ac1ffe59b4bc5f5314a10ae))
+* Now deleting index from ES after swap ([890ab66](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/890ab663ebacfdf3faf6555086ab135bc78ff2bc))
+
 ### [0.1.14](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.13...v0.1.14) (2021-10-01)
 
 
