@@ -13,11 +13,22 @@ export async function discoverRepoArn(sts: STS, repo: S3Repository): Promise<S3R
         // We need to derive the ARN for this repo.
         const accountId = await sts.getCallerIdentity({}).promise().then((result) => result.Account);
 
+        const partition = getPartition(repo.settings.region);
         repoCopy.settings = { ...repoCopy.settings };
-        repoCopy.settings.role_arn = `arn:aws:iam::${accountId}:role/${repo.settings.role_name}`;
+        repoCopy.settings.role_arn = `arn:${partition}:iam::${accountId}:role/${repo.settings.role_name}`;
         delete repoCopy.settings.role_name;
     }
     return repoCopy;
+}
+
+function getPartition(region: string) {
+    if (region.startsWith("cn-")) {
+        return "aws-cn";
+    }
+    if (region.startsWith("us-gov")) {
+        return "aws-us-gov";
+    }
+    return "aws";
 }
 
 export interface SetupRepoProps {
