@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.16](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.15...v0.1.16) (2021-11-08)
+
+
+### Features
+
+* Adding ability to add ingestion pipelines ([4f51b28](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/4f51b2814d01f2d62bc3e894bb2a21cdc476f961))
+
+
+### Bug Fixes
+
+* signing and partitions ([dcb8096](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/dcb80965b1b4fd70155b1dea34b0d9e5ffb584a2))
+
 ### [0.1.15](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.14...v0.1.15) (2021-10-29)
 
 
