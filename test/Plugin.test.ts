@@ -6,7 +6,7 @@ import * as ServerlessPlugin from "serverless/classes/Plugin";
 import * as Sinon from "sinon";
 import * as SinonChai from "sinon-chai";
 import * as AwsUtils from "../src/AwsUtils";
-import Config, { Index, Repository, Template } from "../src/Config";
+import Config, { Index, IngestionPipeline, Repository, Template } from "../src/Config";
 import Plugin, { incrementVersionValue, replaceServerlessTemplates, stripVersion } from "../src/Plugin";
 
 Chai.use(SinonChai);
@@ -441,10 +441,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/Index1",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: index1,
             });
         });
@@ -469,10 +466,7 @@ describe("Plugin", () => {
             // No error.
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/Index1",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: index1,
             });
         });
@@ -515,17 +509,11 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/Index1",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: index1,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index2", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/Index2",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: index2,
             });
         });
@@ -590,11 +578,8 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: template1,
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/_template/TestTemplate1",
             });
         });
 
@@ -619,10 +604,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate3", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/_template/TestTemplate3",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: template3,
             });
         });
@@ -648,17 +630,11 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/_template/TestTemplate1",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: template1,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate2", {
-                host: "abcd123",
-                region: "us-east-1",
-                service: "es",
-                path: "/_template/TestTemplate2",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: template2,
             });
         });
@@ -815,6 +791,7 @@ describe("Plugin", () => {
                 json: undefined,
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index1"
@@ -823,12 +800,9 @@ describe("Plugin", () => {
                         index: "index1_v1"
                     }
                 },
-                host: "abcd123",
-                path: "/_reindex",
-                region: "us-east-1",
-                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index2_v1"
@@ -837,12 +811,9 @@ describe("Plugin", () => {
                         index: "index2_v2"
                     }
                 },
-                host: "abcd123",
-                path: "/_reindex",
-                region: "us-east-1",
-                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     actions: [{
                         add: {
@@ -855,12 +826,9 @@ describe("Plugin", () => {
                         }
                     }]
                 },
-                host: "abcd123",
-                path: "/_aliases",
-                region: "us-east-1",
-                service: "es"
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     actions: [{
                         add: {
@@ -873,10 +841,6 @@ describe("Plugin", () => {
                         }
                     }]
                 },
-                host: "abcd123",
-                path: "/_aliases",
-                region: "us-east-1",
-                service: "es"
             });
         });
     });
@@ -952,10 +916,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo", {
-                host: "abcd123",
-                path: "/_snapshot/TestRepo",
-                region: "us-east-1",
-                service: "es",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
@@ -991,10 +952,7 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo1", {
-                host: "abcd123",
-                path: "/_snapshot/TestRepo1",
-                region: "us-east-1",
-                service: "es",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
@@ -1002,14 +960,83 @@ describe("Plugin", () => {
             });
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo2", {
-                host: "abcd123",
-                path: "/_snapshot/TestRepo2",
-                region: "us-east-1",
-                service: "es",
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     type: repos[1].type,
                     settings: repos[1].settings
                 }
+            });
+        });
+    });
+
+    describe("Setup ingestion pipelines", () => {
+        function createServerless(pipelines: IngestionPipeline[]): Serverless {
+            return {
+                ...fakeServerless,
+                service: {
+                    ...fakeServerless.service,
+                    custom: {
+                        elasticsearch: {
+                            ...endpointConfig,
+                            pipelines
+                        }
+                    }
+                }
+            };
+        }
+
+        it("Tests that an error is thrown if the pipeline doesn't have a name.", async () => {
+            const pipelines: IngestionPipeline[] = [{
+                name: undefined,
+                file: "./test/testFiles/TestPipeline1.json"
+            }];
+
+            const serverless = createServerless(pipelines);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
+        });
+
+        it("Tests that an error is thrown if the pipeline doesn't have a file.", async () => {
+            const pipelines: IngestionPipeline[] = [{
+                name: "TestPipeline",
+                file: undefined
+            }];
+
+            const serverless = createServerless(pipelines);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await checkAndCatchError(() => plugin.hooks["after:aws:deploy:deploy:updateStack"]());
+        });
+
+        it("Tests that the pipeline is set up.", async () => {
+            const pipelines: IngestionPipeline[] = [{
+                name: "TestPipeline1",
+                file: "./test/testFiles/TestPipeline1.json"
+            }, {
+                name: "TestPipeline2",
+                file: "./test/testFiles/TestPipeline1.json"
+            }];
+
+            const serverless = createServerless(pipelines);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            const pipeline1 = require(path.resolve(pipelines[0].file));
+            const pipeline2 = require(path.resolve(pipelines[1].file));
+
+            checkAndDeleteHeadersForEveryCall(putStub);
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_ingest/pipeline/TestPipeline1", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: pipeline1,
+            });
+            expect(putStub).to.have.been.calledWith("https://ABCD123/_ingest/pipeline/TestPipeline2", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: pipeline2,
             });
         });
     });
@@ -1026,10 +1053,7 @@ describe("Plugin", () => {
 function checkAndDeleteHeadersForEveryCall(stub: Sinon.SinonStub) {
     for (const call of stub.args) {
         const headers = call[1].headers;
-        expect(headers).to.have.property("Authorization");
         expect(headers).to.have.property("Content-Type", "application/json");
-        expect(headers).to.have.property("X-Amz-Date");
-        expect(headers).to.have.property("Host", "abcd123");
         delete call[1].headers;
     }
 }

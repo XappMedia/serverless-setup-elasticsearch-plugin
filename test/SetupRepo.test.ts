@@ -120,11 +120,10 @@ describe("SetupRepo", () => {
                 baseUrl: "https:testUrl.com",
                 repos,
                 sts,
-                credentials: {},
+                credentials: {
+                    secretAccessKey: "ABCD123"
+                },
                 requestOptions: {
-                    aws: {
-                        secret: "ABCD123"
-                    }
                 }
             });
 

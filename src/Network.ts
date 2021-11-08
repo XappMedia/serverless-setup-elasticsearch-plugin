@@ -21,8 +21,13 @@ export interface NetworkCredentials {
 }
 
 export function networkCall(requestFunc: "post" | "put" | "get" | "delete", url: string, settings: object, requestOpts: Partial<Request.Options> = {}, credentials: NetworkCredentials = {}) {
+    const headers = {
+        "Content-Type": "application/json",
+        ...requestOpts.headers
+    };
     return Request[requestFunc](url, {
         ...requestOpts,
+        headers,
         aws: {
             key: credentials.accessKeyId,
             secret: credentials.secretAccessKey,

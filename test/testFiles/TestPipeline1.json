@@ -1,0 +1,9 @@
+{
+    "description": "Test Pipeline 1",
+    "processors": [{
+        "drop": {
+            "description": "Removes the document.",
+            "if": "true"
+        }
+    }]
+ }

@@ -53,6 +53,30 @@ export interface S3RepositorySettings {
     server_side_encryption?: boolean;
 }
 
+export interface IngestionPipeline {
+    /**
+     * The name of the pipeline.
+     *
+     * @type {string}
+     * @memberof IngestionPipeline
+     */
+    name: string;
+    /**
+     * The file location containing the pipeline template.
+     *
+     * @type {string}
+     * @memberof IngestionPipeline
+     */
+    file: string;
+    /**
+      * Parameters to replace in the template.
+      *
+      * @type {boolean}
+      * @memberof SetupTemplatesOptions
+      */
+     parameters?: Parameters;
+}
+
 export type RepositoryType = S3RepositoryType | string;
 export type RepositorySettings = S3RepositorySettings | object;
 
@@ -76,29 +100,56 @@ export interface PluginConfig {
      * @memberof PluginConfig
      */
     "onlyOnRegion"?: string;
+
     /**
      * The domain endpoint of the elasticsearch server.
+     *
+     * @type {string}
+     * @memberof PluginConfig
      */
     "endpoint"?: string;
+
     /**
      * The AWS cloudformation output variable that the elasticsearch domain is exported as.
      * If the profile is set in the Serverless file's "provider" section, then that profile must have access to cloudformation outputs.
      * If the profile is not set in the Serverless file, then the "default" profile will be used which have access to cloudformation outputs.
+     *
+     * @type {string}
+     * @memberof PluginConfig
      */
     "cf-endpoint"?: string;
+
     /**
      * The indices which are to be setup.
+     *
+     * @type {Index[]}
+     * @memberof PluginConfig
      */
     "indices"?: Index[];
+
     /**
      * The index templates that are to be setup on the server.
+     *
+     * @type {Template[]}
+     * @memberof PluginConfig
      */
     "templates"?: Template[];
 
     /**
      * The repositories to be set for Elasticsearch
+     *
+     * @type {Repository[]}
+     * @memberof PluginConfig
      */
     "repositories"?: Repository[];
+
+    /**
+     * The ingestion pipelines in the ES server
+     *
+     * @type {IngestionPipeline[]}
+     * @memberof PluginConfig
+     */
+    "pipelines"?: IngestionPipeline[];
 }
 
 export default PluginConfig;

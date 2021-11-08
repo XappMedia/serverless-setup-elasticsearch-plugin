@@ -6,7 +6,7 @@ import * as Serverless from "serverless";
 import * as ServerlessPlugin from "serverless/classes/Plugin";
 import { promisify } from "util";
 import { assumeRole, findCloudformationExport, getServiceUrl, parseConfigObject } from "./AwsUtils";
-import Config, { Index, Template } from "./Config";
+import Config, { Index, IngestionPipeline, Template } from "./Config";
 import { esGet, esPost, esPut, NetworkCredentials } from "./Network";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
@@ -83,10 +83,12 @@ class Plugin implements ServerlessPlugin {
             const endpoint = config.endpoint.startsWith("http") ? config.endpoint : `https://${config.endpoint}`;
 
             this.serverless.cli.log(`Settings up endpoint ${endpoint}.`);
+
+            this.serverless.cli.log("Setting up ingestion pipelines...");
+            await setupIngestionPipelines(endpoint, config.pipelines, requestOptions, credentials);
+
             this.serverless.cli.log("Setting up templates...");
             const setupTemplateResult = await setupTemplates(endpoint, config.templates, { cli: this.serverless.cli }, requestOptions, credentials);
-            console.log("TEMPLATE SETUP RESULT", JSON.stringify(setupTemplateResult, undefined, 2));
-
             for (const setupTemplate of setupTemplateResult.templates) {
                 const { swaps } = setupTemplate;
                 for (const swap of swaps) {
@@ -96,6 +98,7 @@ class Plugin implements ServerlessPlugin {
 
             this.serverless.cli.log("Setting up indices...");
             await setupIndices(endpoint, config.indices, requestOptions, credentials);
+
             this.serverless.cli.log("Setting up repositories...");
             await setupRepo({
                 baseUrl: endpoint,
@@ -406,7 +409,7 @@ function validateTemplate(template: Template) {
     }
 }
 
-function swapTemplateParameters(template: Template, fileContent: string): string {
+function swapTemplateParameters(template: Template | IngestionPipeline, fileContent: string): string {
     const { parameters = {} } = template;
     let replacedContent = fileContent;
     for (const paramKey of Object.keys(parameters)) {
@@ -491,5 +494,33 @@ export function stripVersion(value: string) {
     const matches = value.match(versionRegex);
     return !!matches ? matches[1] : value;
 }
+
+export interface SetupIngestionPipelineResult {
+
+}
+
+async function setupIngestionPipelines(baseUrl: string, templates: IngestionPipeline[] = [], requestOptions: Partial<Request.Options>, credentials: NetworkCredentials): Promise<SetupIngestionPipelineResult> {
+    const setupPromises: PromiseLike<SetupIngestionPipelineResult>[] = templates.map(async (template): Promise<SetupTemplatesResult> => {
+        validateIngestionPipelineTemplate(template);
+
+        const url = `${baseUrl}/_ingest/pipeline/${template.name}`;
+
+        const file = await readFile(Path.resolve(template.file)).then((file) => file.toString("utf-8"));
+        const settings = JSON.parse(swapTemplateParameters(template, file));
+
+        return esPut(url, settings, requestOptions, credentials);
+    });
+    return Promise.all(setupPromises);
+}
+
+function validateIngestionPipelineTemplate(template: IngestionPipeline) {
+    if (!template.name) {
+        throw new Error("Ingestion pipeline template does not have a name.");
+    }
+    if (!template.file) {
+        throw new Error("Ingestion pipeline template does not have a file location.");
+    }
+}
+
 
 export default Plugin;
