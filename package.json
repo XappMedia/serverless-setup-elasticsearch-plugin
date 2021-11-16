@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@types/aws4": "1.5.1",
-    "aws-sdk": "2.614.0",
+    "aws-sdk": "2.814.0",
     "aws4": "1.9.1",
     "deep-equal": "2.0.5",
     "request": "2.88.0",
