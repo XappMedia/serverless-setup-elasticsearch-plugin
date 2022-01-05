@@ -863,6 +863,61 @@ describe("Plugin", () => {
                 },
             });
         });
+
+        it("Tests that the pipeline is submitted on reindex.", async () => {
+            const templates: Template[] = [{
+                name: "TestTemplate1",
+                file: "./test/testFiles/TestTemplate1.json",
+                shouldSwapIndicesOfAliases: {
+                    reIndexPipline: "TestPipeline"
+                }
+            }];
+
+            const serverless = createServerless(templates);
+            const plugin: ServerlessPlugin = new Plugin(serverless);
+
+            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+                TestTemplate1: {
+                    aliases: {
+                        alias1: {
+                        }
+                    }
+                }
+            })));
+            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+                index1: {},
+                index2_v1: {}
+            })));
+            await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
+            await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
+
+            checkAndDeleteHeadersForEveryCall(postStub);
+
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: {
+                    source: {
+                        index: "index1"
+                    },
+                    dest: {
+                        index: "index1_v1",
+                        pipeline: "TestPipeline"
+                    }
+                },
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: {
+                    source: {
+                        index: "index2_v1"
+                    },
+                    dest: {
+                        index: "index2_v2",
+                        pipeline: "TestPipeline"
+                    }
+                },
+            });
+        });
     });
 
     describe("Setup Repo", () => {
