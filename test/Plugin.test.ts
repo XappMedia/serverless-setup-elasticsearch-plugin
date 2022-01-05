@@ -790,25 +790,35 @@ describe("Plugin", () => {
             expect(getStub.secondCall).to.have.been.calledWithMatch("https://ABCD123/_alias/alias1", {
                 json: undefined,
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+            expect(putStub).to.have.been.calledWith("https://ABCD123/index1_v1", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: {}
+            });
+            expect(putStub).to.have.been.calledWith("https://ABCD123/index2_v2", {
+                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                json: {}
+            });
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index1"
                     },
                     dest: {
-                        index: "index1_v1"
+                        index: "index1_v1",
+                        pipeline: undefined
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index2_v1"
                     },
                     dest: {
-                        index: "index2_v2"
+                        index: "index2_v2",
+                        pipeline: undefined
                     }
                 },
             });

@@ -7,6 +7,12 @@ export interface Parameters {
     [key: string]: string;
 }
 
+export interface ShouldSwapIndicesOfAliasesObj {
+    reIndexPipline: string;
+}
+
+export type ShouldSwapIndicesOfAlias = boolean | ShouldSwapIndicesOfAliasesObj;
+
 export interface Template {
     name: string;
     file: string;
@@ -16,7 +22,7 @@ export interface Template {
      * @type {boolean}
      * @memberof SetupTemplatesOptions
      */
-     shouldSwapIndicesOfAliases?: boolean;
+     shouldSwapIndicesOfAliases?: ShouldSwapIndicesOfAlias;
      /**
       * Parameters to replace in the template.
       *

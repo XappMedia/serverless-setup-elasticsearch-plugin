@@ -307,7 +307,9 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
             swaps: []
         };
 
+        const { shouldSwapIndicesOfAliases } = template;
         if (!!template.shouldSwapIndicesOfAliases) {
+            const reIndexPipeline = typeof shouldSwapIndicesOfAliases === "object" ? shouldSwapIndicesOfAliases.reIndexPipline : undefined;
             // Retrieving template that already exists.
             const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions, credentials);
 
@@ -318,7 +320,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
                     if (!!aliases) {
                         const aliasNames = Object.keys(aliases);
                         for (const aliasName of aliasNames) {
-                           const swapResult = await swapIndicesOfAliases({ cli, aliasName, baseUrl}, requestOptions, credentials);
+                           const swapResult = await swapIndicesOfAliases({ cli, aliasName, baseUrl, reIndexPipeline }, requestOptions, credentials);
                            returnValue.swaps.push(...swapResult.swaps);
                         }
                     }
@@ -423,6 +425,7 @@ interface SwapIndiciesOfAliasProps {
     cli?: { log(message: string): any };
     baseUrl: string;
     aliasName: string;
+    reIndexPipeline?: string;
 }
 
 interface SwapIndiciesReturn {
@@ -444,17 +447,32 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
     const currentIndices = !!currentAliases ? Object.keys(currentAliases) : [];
     for (const currentIndex of currentIndices) {
         const newIndex = incrementVersionValue(currentIndex);
+        cli.log(`Creating index ${newIndex}.`);
+        const createIndexUrl = `${baseUrl}/${newIndex}`;
+        await esPut(createIndexUrl, {}, requestOptions, credentials)
+            .catch((error) => {
+                cli.log(`Failed to create index ${newIndex}: ${error.message}`);
+                throw error;
+            });
+
         cli.log(`Reindexing ${currentIndex} to ${newIndex}.`);
-        const reindexUrl = `${baseUrl}/_reindex`;
+        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=false`;
         const reindexBody = {
             source: {
                 index: currentIndex
             },
             dest: {
-                index: newIndex
+                index: newIndex,
+                pipeline: props.reIndexPipeline
             }
         };
-        await esPost(reindexUrl, reindexBody, requestOptions, credentials);
+        await esPost(reindexUrl, reindexBody, requestOptions, credentials)
+            .catch((error) => {
+                cli.log(`Failed to reindex ${currentIndex} to ${newIndex}: ${error.message}`);
+                throw error;
+            });
+
+
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
 
         const aliasSwapUrl = `${baseUrl}/_aliases`;
@@ -470,7 +488,11 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                   }
             }]
         };
-        await esPost(aliasSwapUrl, aliasSwapBody, requestOptions, credentials);
+        await esPost(aliasSwapUrl, aliasSwapBody, requestOptions, credentials)
+            .catch((e) => {
+                cli.log(`Failed to swap indices: ${e.message}`);
+                throw e;
+            });
 
         returnValue.swaps.push({
             alias: aliasName,
