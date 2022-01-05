@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.18](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.17...v0.1.18) (2022-01-05)
+
+
+### Bug Fixes
+
+* Adding an index alias to the alias ([1082e24](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/1082e24c7c95f3591d9a85ece8e0c00cfd2051e8))
+
 ### [0.1.17](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.16...v0.1.17) (2022-01-05)
 
 
