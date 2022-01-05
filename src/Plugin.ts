@@ -309,7 +309,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
 
         const { shouldSwapIndicesOfAliases } = template;
         if (!!template.shouldSwapIndicesOfAliases) {
-            const reIndexPipeline = typeof shouldSwapIndicesOfAliases === "object" ? shouldSwapIndicesOfAliases.reIndexPipline : undefined;
+            const reIndexPipeline = typeof shouldSwapIndicesOfAliases === "object" ? shouldSwapIndicesOfAliases.reIndexPipeline : undefined;
             // Retrieving template that already exists.
             const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions, credentials);
 

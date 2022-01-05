@@ -869,7 +869,7 @@ describe("Plugin", () => {
                 name: "TestTemplate1",
                 file: "./test/testFiles/TestTemplate1.json",
                 shouldSwapIndicesOfAliases: {
-                    reIndexPipline: "TestPipeline"
+                    reIndexPipeline: "TestPipeline"
                 }
             }];
 

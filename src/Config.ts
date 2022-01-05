@@ -8,7 +8,7 @@ export interface Parameters {
 }
 
 export interface ShouldSwapIndicesOfAliasesObj {
-    reIndexPipline: string;
+    reIndexPipeline: string;
 }
 
 export type ShouldSwapIndicesOfAlias = boolean | ShouldSwapIndicesOfAliasesObj;
