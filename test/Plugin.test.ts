@@ -798,7 +798,7 @@ describe("Plugin", () => {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {}
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -810,7 +810,7 @@ describe("Plugin", () => {
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -828,6 +828,11 @@ describe("Plugin", () => {
                     actions: [{
                         add: {
                             index: "index1_v1",
+                            alias: "index1"
+                        }
+                    }, {
+                        add: {
+                            index: "index1_v1",
                             alias: "alias1"
                         }
                     }, {
@@ -841,6 +846,11 @@ describe("Plugin", () => {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     actions: [{
+                        add: {
+                            index: "index2_v2",
+                            alias: "index2"
+                        }
+                    }, {
                         add: {
                             index: "index2_v2",
                             alias: "alias1"

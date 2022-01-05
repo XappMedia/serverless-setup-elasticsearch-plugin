@@ -456,7 +456,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
             });
 
         cli.log(`Reindexing ${currentIndex} to ${newIndex}.`);
-        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=false`;
+        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=true`;
         const reindexBody = {
             source: {
                 index: currentIndex
@@ -478,11 +478,21 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
         const aliasSwapUrl = `${baseUrl}/_aliases`;
         const aliasSwapBody = {
             actions: [{
+                // Make the current index an alias to the new index with the same name so code that calls it will keep it.
+                add: {
+                    index: newIndex,
+                    alias: stripVersion(currentIndex)
+                }
+            },
+              // Point the alias to the new index.
+            {
                 add: {
                     index: newIndex,
                     alias: aliasName
                 }
-            }, {
+            },
+                // Remove the old index
+                {
                 remove_index: {
                     index: currentIndex
                   }
