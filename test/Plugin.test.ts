@@ -37,6 +37,10 @@ describe("Plugin", () => {
     let postStub: Sinon.SinonStub<any, any>;
     let getStub: Sinon.SinonStub<any, any>;
 
+    const getTemplateStub = Sinon.stub();
+    const getTasksStub = Sinon.stub();
+    const getAliasStub = Sinon.stub();
+
     before(() => {
         putStub = sanbox.stub(Request, "put");
         postStub = sanbox.stub(Request, "post");
@@ -54,7 +58,22 @@ describe("Plugin", () => {
 
         postStub.returns(Promise.resolve());
 
-        getStub.returns(Promise.resolve());
+        getTemplateStub.returns(Promise.resolve());
+        getAliasStub.returns(Promise.resolve());
+        getTasksStub.returns(Promise.resolve({
+            completed: true
+        }));
+        getStub.callsFake((url: string) => {
+            console.log("U", url);
+            if (url.indexOf("_template") >= 0) {
+                return getTemplateStub();
+            } else if (url.indexOf("_tasks") >= 0) {
+                return getTasksStub();
+            } else if (url.indexOf("_alias") >= 0) {
+                return getAliasStub();
+            }
+            return Promise.resolve();
+        });
 
         findCloudformationExportStub.returns(Promise.resolve(endpointConfig.endpoint));
 
@@ -651,8 +670,9 @@ describe("Plugin", () => {
 
             const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
             notFoundError.statusCode = 404;
-            getStub.onFirstCall().returns(Promise.reject(notFoundError));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+
+            getTemplateStub.returns(Promise.reject(notFoundError));
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -675,8 +695,8 @@ describe("Plugin", () => {
 
             const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
             networkError.statusCode = 500;
-            getStub.onFirstCall().returns(Promise.reject(networkError));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.reject(networkError));
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -705,7 +725,8 @@ describe("Plugin", () => {
 
             const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
             notFoundError.statusCode = 404;
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -713,7 +734,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.reject(notFoundError));
+            getAliasStub.returns(Promise.reject(notFoundError));
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
@@ -733,7 +754,7 @@ describe("Plugin", () => {
 
             const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
             networkError.statusCode = 500;
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -741,7 +762,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.reject(networkError));
+            getAliasStub.returns(Promise.reject(networkError));
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
 
             let caughtError: Error;
@@ -765,7 +786,7 @@ describe("Plugin", () => {
             const serverless = createServerless(templates);
             const plugin: ServerlessPlugin = new Plugin(serverless);
 
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -773,7 +794,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -875,8 +896,7 @@ describe("Plugin", () => {
 
             const serverless = createServerless(templates);
             const plugin: ServerlessPlugin = new Plugin(serverless);
-
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -884,7 +904,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));

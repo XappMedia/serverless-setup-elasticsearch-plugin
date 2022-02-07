@@ -10,6 +10,7 @@ import Config, { Index, IngestionPipeline, Template } from "./Config";
 import { esGet, esPost, esPut, NetworkCredentials } from "./Network";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
+import { sleep } from "./Sleep";
 
 
 const readFile = promisify(fs.readFile);
@@ -299,9 +300,12 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
 
         const url = `${baseUrl}/_template/${template.name}`;
 
+        cli.log("reading file");
         const file = await readFile(Path.resolve(template.file)).then((file) => file.toString("utf-8"));
+        cli.log("S1");
         const settings = JSON.parse(swapTemplateParameters(template, file));
 
+        cli.log("S2");
         const returnValue: SetupTemplatesResult = {
             ...template,
             swaps: []
@@ -311,7 +315,9 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
         if (!!template.shouldSwapIndicesOfAliases) {
             const reIndexPipeline = typeof shouldSwapIndicesOfAliases === "object" ? shouldSwapIndicesOfAliases.reIndexPipeline : undefined;
             // Retrieving template that already exists.
+            cli.log("Gettin gprev");
             const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions, credentials);
+            cli.log("Got prev");
 
             if (!!previous) {
                 const { order, ...previousSettings } = previous[template.name];
@@ -328,6 +334,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
             }
         }
 
+        cli.log("P");
         return esPut(url, settings, requestOptions, credentials)
             .then(() => returnValue);
     });
@@ -377,6 +384,7 @@ function returnPreviousTemplates(baseUrl: string, templateName: string, requestO
     return esGet(url, undefined, requestOptions, credentials)
         .then(result => JSON.parse(result))
         .catch((error) => {
+            console.log("T", error);
             if (error.statusCode === 404) {
                 return undefined;
             }
@@ -456,7 +464,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
             });
 
         cli.log(`Reindexing ${currentIndex} to ${newIndex}.`);
-        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=true`;
+        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=false`;
         const reindexBody = {
             source: {
                 index: currentIndex
@@ -466,12 +474,18 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                 pipeline: props.reIndexPipeline
             }
         };
-        await esPost(reindexUrl, reindexBody, requestOptions, credentials)
+        const response = await esPost(reindexUrl, reindexBody, requestOptions, credentials)
             .catch((error) => {
                 cli.log(`Failed to reindex ${currentIndex} to ${newIndex}: ${error.message}`);
                 throw error;
             });
-
+        const reindexTaskToken: string = response.body.task;
+        cli.log("Waiting for reindex task to complete.");
+        await waitForTaskCompletion({
+            baseUrl,
+            cli,
+            taskId: reindexTaskToken,
+        }, credentials);
 
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
 
@@ -511,6 +525,32 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
         });
     }
     return returnValue;
+}
+
+interface WaitTaskCompletionProps {
+    baseUrl: string;
+    taskId: string;
+    cli: { log(message: string): any };
+}
+
+async function waitForTaskCompletion(props: WaitTaskCompletionProps, credentials: NetworkCredentials) {
+    const { baseUrl, taskId, cli } = props;
+    const taskUrl = `${baseUrl}/_tasks/${taskId}`;
+    const task = await esGet(taskUrl, {}, { json: true }, credentials).catch((e) => {
+        if (e.statusCode === 404) {
+            return {
+
+            };
+        }
+    });
+    if (task.completed) {
+        return;
+    }
+
+    cli.log(`Waiting for task ${taskId} to complete.`);
+    await sleep(5);
+
+    await waitForTaskCompletion(props, credentials);
 }
 
 export function incrementVersionValue(value: string) {
