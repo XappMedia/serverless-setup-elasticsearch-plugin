@@ -536,14 +536,15 @@ interface WaitTaskCompletionProps {
 async function waitForTaskCompletion(props: WaitTaskCompletionProps, credentials: NetworkCredentials) {
     const { baseUrl, taskId, cli } = props;
     const taskUrl = `${baseUrl}/_tasks/${taskId}`;
-    const task = await esGet(taskUrl, {}, { json: true }, credentials).catch((e) => {
+    const task = await esGet(taskUrl, {}, {  }, credentials).catch((e) => {
         if (e.statusCode === 404) {
             return {
 
             };
         }
     });
-    if (task.completed) {
+    const taskJson = JSON.parse(task)
+    if (taskJson.completed) {
         return;
     }
 

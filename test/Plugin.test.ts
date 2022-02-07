@@ -60,9 +60,9 @@ describe("Plugin", () => {
 
         getTemplateStub.returns(Promise.resolve());
         getAliasStub.returns(Promise.resolve());
-        getTasksStub.returns(Promise.resolve({
+        getTasksStub.returns(Promise.resolve(JSON.stringify({
             completed: true
-        }));
+        })));
         getStub.callsFake((url: string) => {
             console.log("U", url);
             if (url.indexOf("_template") >= 0) {
