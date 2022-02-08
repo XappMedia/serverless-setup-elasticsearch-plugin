@@ -59,7 +59,7 @@ describe("Plugin", () => {
         putStub.returns(Promise.resolve());
 
         postReindexStub.returns(Promise.resolve({
-            task: "TestTaskId"
+            task: "TestNodeId:TestTaskId"
         }));
         postStub.callsFake((url: string) => {
             if (url.includes("_reindex")) {
@@ -72,9 +72,11 @@ describe("Plugin", () => {
         getAliasStub.returns(Promise.resolve());
         getTasksStub.returns(Promise.resolve(JSON.stringify({
             nodes: {
-                tasks: {
-                    TestTaskId: {
-                        complete: true
+                TestNodeId: {
+                    tasks: {
+                        TestTaskId: {
+                            complete: true
+                        }
                     }
                 }
             }
