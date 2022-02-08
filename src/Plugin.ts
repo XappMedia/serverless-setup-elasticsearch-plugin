@@ -10,6 +10,7 @@ import Config, { Index, IngestionPipeline, Template } from "./Config";
 import { esGet, esPost, esPut, NetworkCredentials } from "./Network";
 import { getProfile, getProviderName, getRegion, getStackName } from "./ServerlessObjUtils";
 import { setupRepo } from "./SetupRepo";
+import { sleep } from "./Sleep";
 
 
 const readFile = promisify(fs.readFile);
@@ -456,7 +457,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
             });
 
         cli.log(`Reindexing ${currentIndex} to ${newIndex}.`);
-        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=true`;
+        const reindexUrl = `${baseUrl}/_reindex?wait_for_completion=false`;
         const reindexBody = {
             source: {
                 index: currentIndex
@@ -466,12 +467,18 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                 pipeline: props.reIndexPipeline
             }
         };
-        await esPost(reindexUrl, reindexBody, requestOptions, credentials)
+        const response = await esPost(reindexUrl, reindexBody, requestOptions, credentials)
             .catch((error) => {
                 cli.log(`Failed to reindex ${currentIndex} to ${newIndex}: ${error.message}`);
                 throw error;
             });
-
+        const reindexTaskToken: string = response.task;
+        cli.log("Waiting for reindex task to complete.");
+        await waitForTaskCompletion({
+            baseUrl,
+            cli,
+            taskId: reindexTaskToken,
+        }, requestOptions, credentials);
 
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
 
@@ -511,6 +518,41 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
         });
     }
     return returnValue;
+}
+
+interface WaitTaskCompletionProps {
+    baseUrl: string;
+    taskId: string;
+    cli: { log(message: string): any };
+}
+
+async function waitForTaskCompletion(props: WaitTaskCompletionProps, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials) {
+    const { baseUrl, taskId, cli } = props;
+    // For some reason, /_tasks/{taskId} returns a 403 on some servers, so we're going to
+    // pull all the tasks and look for the one we want.
+    let sleepTime = 15;
+    const url = `${baseUrl}/_tasks`;
+    const nodeAndTask = taskId.split(":");
+    const task = await esGet(url, undefined, requestOptions, credentials)
+        .then(result => JSON.parse(result))
+        .then(tasks => tasks.nodes[nodeAndTask[0]].tasks[taskId])
+        .catch((e) => {
+            if (e.statusCode === 404) {
+                return { completed: true };
+            }
+            if (e.statusCode === 429) { // Too many requests  Slow it down a bit.
+                sleepTime = 60 * 5;
+            }
+            throw e;
+        });
+    if (!task || task.completed) {
+        return;
+    }
+
+    cli.log(`Waiting for task ${taskId} to complete.`);
+    await sleep(sleepTime);
+
+    await waitForTaskCompletion(props, requestOptions, credentials);
 }
 
 export function incrementVersionValue(value: string) {

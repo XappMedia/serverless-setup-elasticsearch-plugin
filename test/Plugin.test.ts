@@ -37,6 +37,12 @@ describe("Plugin", () => {
     let postStub: Sinon.SinonStub<any, any>;
     let getStub: Sinon.SinonStub<any, any>;
 
+    const getTemplateStub = Sinon.stub();
+    const getTasksStub = Sinon.stub();
+    const getAliasStub = Sinon.stub();
+
+    const postReindexStub = Sinon.stub();
+
     before(() => {
         putStub = sanbox.stub(Request, "put");
         postStub = sanbox.stub(Request, "post");
@@ -52,9 +58,39 @@ describe("Plugin", () => {
 
         putStub.returns(Promise.resolve());
 
-        postStub.returns(Promise.resolve());
+        postReindexStub.returns(Promise.resolve({
+            task: "TestNodeId:TestTaskId"
+        }));
+        postStub.callsFake((url: string) => {
+            if (url.includes("_reindex")) {
+                return postReindexStub();
+            }
+            return Promise.resolve();
+        });
 
-        getStub.returns(Promise.resolve());
+        getTemplateStub.returns(Promise.resolve());
+        getAliasStub.returns(Promise.resolve());
+        getTasksStub.returns(Promise.resolve(JSON.stringify({
+            nodes: {
+                TestNodeId: {
+                    tasks: {
+                        TestTaskId: {
+                            complete: true
+                        }
+                    }
+                }
+            }
+        })));
+        getStub.callsFake((url: string) => {
+            if (url.indexOf("_template") >= 0) {
+                return getTemplateStub();
+            } else if (url.indexOf("_tasks") >= 0) {
+                return getTasksStub();
+            } else if (url.indexOf("_alias") >= 0) {
+                return getAliasStub();
+            }
+            return Promise.resolve();
+        });
 
         findCloudformationExportStub.returns(Promise.resolve(endpointConfig.endpoint));
 
@@ -651,8 +687,9 @@ describe("Plugin", () => {
 
             const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
             notFoundError.statusCode = 404;
-            getStub.onFirstCall().returns(Promise.reject(notFoundError));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+
+            getTemplateStub.returns(Promise.reject(notFoundError));
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -675,8 +712,8 @@ describe("Plugin", () => {
 
             const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
             networkError.statusCode = 500;
-            getStub.onFirstCall().returns(Promise.reject(networkError));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.reject(networkError));
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -705,7 +742,8 @@ describe("Plugin", () => {
 
             const notFoundError: Error & { statusCode?: number } = new Error("Not found.");
             notFoundError.statusCode = 404;
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -713,7 +751,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.reject(notFoundError));
+            getAliasStub.returns(Promise.reject(notFoundError));
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
             await plugin.hooks["after:aws:deploy:deploy:updateStack"]();
 
@@ -733,7 +771,7 @@ describe("Plugin", () => {
 
             const networkError: Error & { statusCode?: number } = new Error("Error per requirement of the test.");
             networkError.statusCode = 500;
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -741,7 +779,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.reject(networkError));
+            getAliasStub.returns(Promise.reject(networkError));
             await plugin.hooks["before:aws:deploy:deploy:updateStack"]();
 
             let caughtError: Error;
@@ -765,7 +803,7 @@ describe("Plugin", () => {
             const serverless = createServerless(templates);
             const plugin: ServerlessPlugin = new Plugin(serverless);
 
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -773,7 +811,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -798,7 +836,7 @@ describe("Plugin", () => {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {}
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -810,7 +848,7 @@ describe("Plugin", () => {
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -875,8 +913,7 @@ describe("Plugin", () => {
 
             const serverless = createServerless(templates);
             const plugin: ServerlessPlugin = new Plugin(serverless);
-
-            getStub.onFirstCall().returns(Promise.resolve(JSON.stringify({
+            getTemplateStub.returns(Promise.resolve(JSON.stringify({
                 TestTemplate1: {
                     aliases: {
                         alias1: {
@@ -884,7 +921,7 @@ describe("Plugin", () => {
                     }
                 }
             })));
-            getStub.onSecondCall().returns(Promise.resolve(JSON.stringify({
+            getAliasStub.returns(Promise.resolve(JSON.stringify({
                 index1: {},
                 index2_v1: {}
             })));
@@ -893,7 +930,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(postStub);
 
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -905,7 +942,7 @@ describe("Plugin", () => {
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
