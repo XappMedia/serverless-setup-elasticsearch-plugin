@@ -66,7 +66,7 @@ describe("Plugin", () => {
                 return postReindexStub();
             }
             return Promise.resolve();
-        })
+        });
 
         getTemplateStub.returns(Promise.resolve());
         getAliasStub.returns(Promise.resolve());
