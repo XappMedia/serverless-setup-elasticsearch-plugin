@@ -58,9 +58,9 @@ describe("Plugin", () => {
 
         putStub.returns(Promise.resolve());
 
-        postReindexStub.returns(Promise.resolve(JSON.stringify({
+        postReindexStub.returns(Promise.resolve({
             task: "TestTaskId"
-        })));
+        }));
         postStub.callsFake((url: string) => {
             if (url.includes("_reindex")) {
                 return postReindexStub();

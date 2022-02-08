@@ -300,12 +300,9 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
 
         const url = `${baseUrl}/_template/${template.name}`;
 
-        cli.log("reading file");
         const file = await readFile(Path.resolve(template.file)).then((file) => file.toString("utf-8"));
-        cli.log("S1");
         const settings = JSON.parse(swapTemplateParameters(template, file));
 
-        cli.log("S2");
         const returnValue: SetupTemplatesResult = {
             ...template,
             swaps: []
@@ -315,9 +312,7 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
         if (!!template.shouldSwapIndicesOfAliases) {
             const reIndexPipeline = typeof shouldSwapIndicesOfAliases === "object" ? shouldSwapIndicesOfAliases.reIndexPipeline : undefined;
             // Retrieving template that already exists.
-            cli.log("Gettin gprev");
             const previous = await returnPreviousTemplates(baseUrl, template.name, requestOptions, credentials);
-            cli.log("Got prev");
 
             if (!!previous) {
                 const { order, ...previousSettings } = previous[template.name];
@@ -334,7 +329,6 @@ async function setupTemplates(baseUrl: string, templates: Template[] = [], opts:
             }
         }
 
-        cli.log("P");
         return esPut(url, settings, requestOptions, credentials)
             .then(() => returnValue);
     });
@@ -478,13 +472,13 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                 cli.log(`Failed to reindex ${currentIndex} to ${newIndex}: ${error.message}`);
                 throw error;
             });
-        const reindexTaskToken: string = JSON.parse(response).task;
+        const reindexTaskToken: string = response.task;
         cli.log("Waiting for reindex task to complete.");
         await waitForTaskCompletion({
             baseUrl,
             cli,
             taskId: reindexTaskToken,
-        }, credentials);
+        }, requestOptions, credentials);
 
         cli.log(`Swapping ${currentIndex} to ${newIndex} on alias ${aliasName}.`);
 
@@ -532,25 +526,33 @@ interface WaitTaskCompletionProps {
     cli: { log(message: string): any };
 }
 
-async function waitForTaskCompletion(props: WaitTaskCompletionProps, credentials: NetworkCredentials) {
+async function waitForTaskCompletion(props: WaitTaskCompletionProps, requestOptions: Partial<Request.Options>, credentials: NetworkCredentials) {
     const { baseUrl, taskId, cli } = props;
-    const taskUrl = `${baseUrl}/_tasks/${taskId}`;
-    const task = await esGet(taskUrl, {}, {  }, credentials).catch((e) => {
-        if (e.statusCode === 404) {
-            return {
-
-            };
-        }
-    });
-    const taskJson = JSON.parse(task);
-    if (taskJson.completed) {
+    // For some reason, /_tasks/{taskId} returns a 403 on some servers, so we're going to
+    // pull all the tasks and look for the one we want.
+    let sleepTime = 15;
+    const url = `${baseUrl}/_tasks`;
+    const nodeAndTask = taskId.split(":");
+    const task = await esGet(url, undefined, requestOptions, credentials)
+        .then(result => JSON.parse(result))
+        .then(tasks => tasks.nodes[nodeAndTask[0]].tasks[taskId])
+        .catch((e) => {
+            if (e.statusCode === 404) {
+                return { completed: true };
+            }
+            if (e.statusCode === 429) { // Too many requests  Slow it down a bit.
+                sleepTime = 60 * 5;
+            }
+            throw e;
+        });
+    if (!task || task.completed) {
         return;
     }
 
     cli.log(`Waiting for task ${taskId} to complete.`);
-    await sleep(5);
+    await sleep(sleepTime);
 
-    await waitForTaskCompletion(props, credentials);
+    await waitForTaskCompletion(props, requestOptions, credentials);
 }
 
 export function incrementVersionValue(value: string) {
