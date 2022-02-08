@@ -41,6 +41,8 @@ describe("Plugin", () => {
     const getTasksStub = Sinon.stub();
     const getAliasStub = Sinon.stub();
 
+    const postReindexStub = Sinon.stub();
+
     before(() => {
         putStub = sanbox.stub(Request, "put");
         postStub = sanbox.stub(Request, "post");
@@ -56,7 +58,15 @@ describe("Plugin", () => {
 
         putStub.returns(Promise.resolve());
 
-        postStub.returns(Promise.resolve());
+        postReindexStub.returns(Promise.resolve(JSON.stringify({
+            task: "TestTaskId"
+        })));
+        postStub.callsFake((url: string) => {
+            if (url.includes("_reindex")) {
+                return postReindexStub();
+            }
+            return Promise.resolve();
+        })
 
         getTemplateStub.returns(Promise.resolve());
         getAliasStub.returns(Promise.resolve());
@@ -64,7 +74,6 @@ describe("Plugin", () => {
             completed: true
         })));
         getStub.callsFake((url: string) => {
-            console.log("U", url);
             if (url.indexOf("_template") >= 0) {
                 return getTemplateStub();
             } else if (url.indexOf("_tasks") >= 0) {

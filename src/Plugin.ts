@@ -384,7 +384,6 @@ function returnPreviousTemplates(baseUrl: string, templateName: string, requestO
     return esGet(url, undefined, requestOptions, credentials)
         .then(result => JSON.parse(result))
         .catch((error) => {
-            console.log("T", error);
             if (error.statusCode === 404) {
                 return undefined;
             }
@@ -479,7 +478,7 @@ async function swapIndicesOfAliases(props: SwapIndiciesOfAliasProps, requestOpti
                 cli.log(`Failed to reindex ${currentIndex} to ${newIndex}: ${error.message}`);
                 throw error;
             });
-        const reindexTaskToken: string = response.body.task;
+        const reindexTaskToken: string = JSON.parse(response).task;
         cli.log("Waiting for reindex task to complete.");
         await waitForTaskCompletion({
             baseUrl,
