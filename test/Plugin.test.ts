@@ -828,7 +828,7 @@ describe("Plugin", () => {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {}
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -840,7 +840,7 @@ describe("Plugin", () => {
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -922,7 +922,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(postStub);
 
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
@@ -934,7 +934,7 @@ describe("Plugin", () => {
                     }
                 },
             });
-            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=true", {
+            expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
                 aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
                 json: {
                     source: {
