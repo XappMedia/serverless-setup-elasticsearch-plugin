@@ -542,7 +542,7 @@ async function waitForTaskCompletion(props: WaitTaskCompletionProps, credentials
             };
         }
     });
-    const taskJson = JSON.parse(task)
+    const taskJson = JSON.parse(task);
     if (taskJson.completed) {
         return;
     }
