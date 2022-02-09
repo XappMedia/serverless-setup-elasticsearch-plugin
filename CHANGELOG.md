@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.25](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.24...v0.1.25) (2022-02-08)
+
 ### [0.1.24](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.21...v0.1.24) (2022-02-08)
 
 ### [0.1.21](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.18...v0.1.21) (2022-01-05)
