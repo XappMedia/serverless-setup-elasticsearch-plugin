@@ -25,6 +25,9 @@ export function networkCall(requestFunc: "post" | "put" | "get" | "delete", url:
         "Content-Type": "application/json",
         ...requestOpts.headers
     };
+    console.log("Network Call");
+    console.log(JSON.stringify(headers, undefined, 2));
+    console.log(JSON.stringify(credentials, undefined, 2));
     return Request[requestFunc](url, {
         ...requestOpts,
         headers,
