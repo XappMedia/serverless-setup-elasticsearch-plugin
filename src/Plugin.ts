@@ -59,7 +59,7 @@ class Plugin implements ServerlessPlugin {
         const requestOptions: Partial<Request.Options> = { };
         const credentials: NetworkCredentials = {};
         const sts = new STS({
-            credentials: new SharedIniFileCredentials({ profile }),
+            credentials: profile ? new SharedIniFileCredentials({ profile }) : undefined,
             region,
             endpoint: getServiceUrl("sts", region)
         });
@@ -225,8 +225,9 @@ async function parseConfig(serverless: Serverless): Promise<Config[]> {
             continue;
         }
         if (provider.name === "aws" || config["cf-endpoint"]) {
+            const proifle = getProfile(serverless);
             const cloudFormation = new CloudFormation({
-                credentials: new SharedIniFileCredentials({ profile: getProfile(serverless) }),
+                credentials: proifle ? new SharedIniFileCredentials({ profile: getProfile(serverless) }) : undefined,
                 endpoint: getServiceUrl("cloudformation", getRegion(serverless))
             });
 
