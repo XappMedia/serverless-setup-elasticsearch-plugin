@@ -477,7 +477,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: index1,
             });
         });
@@ -502,7 +502,7 @@ describe("Plugin", () => {
             // No error.
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: index1,
             });
         });
@@ -545,11 +545,11 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: index1,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/Index2", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: index2,
             });
         });
@@ -614,7 +614,7 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: template1,
             });
         });
@@ -640,7 +640,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate3", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: template3,
             });
         });
@@ -666,11 +666,11 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: template1,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/_template/TestTemplate2", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: template2,
             });
         });
@@ -829,15 +829,15 @@ describe("Plugin", () => {
                 json: undefined,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/index1_v1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {}
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/index2_v2", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {}
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index1"
@@ -849,7 +849,7 @@ describe("Plugin", () => {
                 },
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index2_v1"
@@ -861,7 +861,7 @@ describe("Plugin", () => {
                 },
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     actions: [{
                         add: {
@@ -881,7 +881,7 @@ describe("Plugin", () => {
                 },
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_aliases", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     actions: [{
                         add: {
@@ -931,7 +931,7 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(postStub);
 
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index1"
@@ -943,7 +943,7 @@ describe("Plugin", () => {
                 },
             });
             expect(postStub).to.have.been.calledWith("https://ABCD123/_reindex?wait_for_completion=false", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     source: {
                         index: "index2_v1"
@@ -1028,7 +1028,7 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
@@ -1064,7 +1064,7 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret",session: undefined, service: "es", sign_version: 4 },
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
@@ -1072,7 +1072,7 @@ describe("Plugin", () => {
             });
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo2", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     type: repos[1].type,
                     settings: repos[1].settings
@@ -1143,11 +1143,11 @@ describe("Plugin", () => {
 
             checkAndDeleteHeadersForEveryCall(putStub);
             expect(putStub).to.have.been.calledWith("https://ABCD123/_ingest/pipeline/TestPipeline1", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: pipeline1,
             });
             expect(putStub).to.have.been.calledWith("https://ABCD123/_ingest/pipeline/TestPipeline2", {
-                aws: { key: "TestKeyId", secret: "TestSecret", service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: pipeline2,
             });
         });
