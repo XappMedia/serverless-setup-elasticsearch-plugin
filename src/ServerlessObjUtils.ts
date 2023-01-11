@@ -5,7 +5,7 @@ import * as Serverless from "serverless";
  * @param serverless The serverless object to search
  * @param defaultProfile The profile to return if the profile was not specified.  Default is "default".
  */
-export const getProfile = (serverless: Serverless, defaultProfile: string = "default") => {
+export const getProfile = (serverless: Serverless, defaultProfile: string = undefined) => {
     const options: any = (serverless.providers as any)?.aws?.options || {};
     return options.awsProfile || options["aws-profile"]  || defaultProfile;
 };
