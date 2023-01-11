@@ -1064,7 +1064,7 @@ describe("Plugin", () => {
             checkAndDeleteHeadersForEveryCall(putStub);
 
             expect(putStub).to.have.been.calledWith("https://ABCD123/_snapshot/TestRepo1", {
-                aws: { key: "TestKeyId", secret: "TestSecret",session: undefined, service: "es", sign_version: 4 },
+                aws: { key: "TestKeyId", secret: "TestSecret", session: undefined, service: "es", sign_version: 4 },
                 json: {
                     type: repos[0].type,
                     settings: repos[0].settings
