@@ -62,7 +62,7 @@ describe("ServerlessObjUtils", () => {
                     provider: {}
                 }
             };
-            expect(Utils.getProfile(serverless as any)).to.equal("default");
+            expect(Utils.getProfile(serverless as any)).to.be.undefined;
         });
 
         it("Tests that the profile is defaulted to the one specified if profile is not provided from serverless object.", () => {
@@ -81,7 +81,7 @@ describe("ServerlessObjUtils", () => {
                     getServiceName: () => "TestService",
                 }
             };
-            expect(Utils.getProfile(serverless as any)).to.equal("default");
+            expect(Utils.getProfile(serverless as any)).to.be.undefined;
         });
     });
 
