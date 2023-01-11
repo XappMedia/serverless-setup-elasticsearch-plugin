@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.27](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.26...v0.1.27) (2023-01-11)
+
+
+### Bug Fixes
+
+* Making credentials optional if profile is not set ([735ae5e](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/735ae5ec756f477f2094192ae62f8b1fa9c2f5b8))
+* Making credentials optional if profile is not set. ([441f332](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/commit/441f332d251d096731efdc5b7525bfb4288f61c2))
+
 ### [0.1.26](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.25...v0.1.26) (2022-02-09)
 
 ### [0.1.25](https://github.com/XappMedia/serverless-setup-elasticsearch-plugin/compare/v0.1.24...v0.1.25) (2022-02-08)
