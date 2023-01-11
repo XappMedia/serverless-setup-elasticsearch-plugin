@@ -1,4 +1,4 @@
-import { CloudFormation, Credentials, SharedIniFileCredentials, STS } from "aws-sdk";
+import { CloudFormation, config, Credentials, SharedIniFileCredentials, STS } from "aws-sdk";
 import FeatureNotSupportedError from "./FeatureNotSupportedError";
 import ResourceNotFoundError from "./ResourceNotFoundError";
 
@@ -15,7 +15,7 @@ export function getServiceUrl(service: string, region: string): string {
  * @returns {(Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">>)}
  */
 export async function assumeRole(sts: STS, profile: string): Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">> {
-    const creds = profile ? new SharedIniFileCredentials({  profile, }) : undefined;
+    const creds = profile ? new SharedIniFileCredentials({  profile, }) : config.credentials;
     if (profile && (!creds.accessKeyId || !creds.secretAccessKey)) {
         const data = await sts.assumeRole({
             // @ts-ignore
@@ -28,7 +28,11 @@ export async function assumeRole(sts: STS, profile: string): Promise<Pick<Creden
             sessionToken: data.Credentials.SessionToken
         };
     }
-    return Promise.resolve(creds);
+    return Promise.resolve({
+        accessKeyId: creds.accessKeyId,
+        secretAccessKey: creds.secretAccessKey,
+        sessionToken: creds.sessionToken
+    });
 }
 
 /**
