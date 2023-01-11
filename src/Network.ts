@@ -34,6 +34,7 @@ export function networkCall(requestFunc: "post" | "put" | "get" | "delete", url:
         aws: {
             key: credentials.accessKeyId,
             secret: credentials.secretAccessKey,
+            session: credentials.sessionToken,
             sign_version: 4,
             service: "es",
         } as any,
