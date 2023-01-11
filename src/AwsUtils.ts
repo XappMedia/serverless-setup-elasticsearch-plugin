@@ -16,7 +16,7 @@ export function getServiceUrl(service: string, region: string): string {
  */
 export async function assumeRole(sts: STS, profile: string): Promise<Pick<Credentials, "accessKeyId" | "secretAccessKey" | "sessionToken">> {
     const creds = profile ? new SharedIniFileCredentials({  profile, }) : undefined;
-    if (!creds || !creds.accessKeyId || !creds.secretAccessKey) {
+    if (profile && (!creds.accessKeyId || !creds.secretAccessKey)) {
         const data = await sts.assumeRole({
             // @ts-ignore
             RoleArn: creds.roleArn,
@@ -27,9 +27,8 @@ export async function assumeRole(sts: STS, profile: string): Promise<Pick<Creden
             secretAccessKey: data.Credentials.SecretAccessKey,
             sessionToken: data.Credentials.SessionToken
         };
-    } else {
-        return Promise.resolve(creds);
     }
+    return Promise.resolve(creds);
 }
 
 /**
